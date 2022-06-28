@@ -7,6 +7,15 @@ package io.flutter.plugins.videoplayer;
 import android.content.Context;
 import android.os.Build;
 import android.util.LongSparseArray;
+
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import javax.net.ssl.HttpsURLConnection;
+
 import io.flutter.FlutterInjector;
 import io.flutter.Log;
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
@@ -21,10 +30,6 @@ import io.flutter.plugins.videoplayer.Messages.PositionMessage;
 import io.flutter.plugins.videoplayer.Messages.TextureMessage;
 import io.flutter.plugins.videoplayer.Messages.VolumeMessage;
 import io.flutter.view.TextureRegistry;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.util.Map;
-import javax.net.ssl.HttpsURLConnection;
 
 /** Android platform implementation of the VideoPlayerPlugin. */
 public class VideoPlayerPlugin implements FlutterPlugin, AndroidVideoPlayerApi {
@@ -117,26 +122,29 @@ public class VideoPlayerPlugin implements FlutterPlugin, AndroidVideoPlayerApi {
 
   public TextureMessage create(CreateMessage arg) {
     TextureRegistry.SurfaceTextureEntry handle =
-        flutterState.textureRegistry.createSurfaceTexture();
+            flutterState.textureRegistry.createSurfaceTexture();
     EventChannel eventChannel =
-        new EventChannel(
-            flutterState.binaryMessenger, "flutter.io/videoPlayer/videoEvents" + handle.id());
+            new EventChannel(
+                    flutterState.binaryMessenger, "flutter.io/videoPlayer/videoEvents" + handle.id());
 
     VideoPlayer player;
-    if (arg.getAsset() != null) {
-      String assetLookupKey;
+    if (arg.getAssets() != null) {
+      List<String> dataSources = new ArrayList<>();
       if (arg.getPackageName() != null) {
-        assetLookupKey =
-            flutterState.keyForAssetAndPackageName.get(arg.getAsset(), arg.getPackageName());
+        for (String asset : arg.getAssets()) {
+          dataSources.add("asset:///" + flutterState.keyForAssetAndPackageName.get(asset, arg.getPackageName()));
+        }
       } else {
-        assetLookupKey = flutterState.keyForAsset.get(arg.getAsset());
+        for (String asset : arg.getAssets()) {
+          dataSources.add("asset:///" + flutterState.keyForAsset.get(asset));
+        }
       }
       player =
           new VideoPlayer(
               flutterState.applicationContext,
               eventChannel,
               handle,
-              "asset:///" + assetLookupKey,
+              dataSources,
               null,
               null,
               options);
@@ -148,7 +156,7 @@ public class VideoPlayerPlugin implements FlutterPlugin, AndroidVideoPlayerApi {
               flutterState.applicationContext,
               eventChannel,
               handle,
-              arg.getUri(),
+              arg.getUris(),
               arg.getFormatHint(),
               httpHeaders,
               options);

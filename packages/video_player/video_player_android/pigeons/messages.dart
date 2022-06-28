@@ -44,8 +44,8 @@ class PositionMessage {
 
 class CreateMessage {
   CreateMessage({required this.httpHeaders});
-  String? asset;
-  String? uri;
+  List<String?>? assets;
+  List<String?>? uris;
   String? packageName;
   String? formatHint;
   Map<String?, String?> httpHeaders;

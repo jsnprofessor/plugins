@@ -34,6 +34,8 @@ import com.google.android.exoplayer2.upstream.DefaultHttpDataSource;
 import com.google.android.exoplayer2.util.Util;
 import io.flutter.plugin.common.EventChannel;
 import io.flutter.view.TextureRegistry;
+
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -64,7 +66,7 @@ final class VideoPlayer {
       Context context,
       EventChannel eventChannel,
       TextureRegistry.SurfaceTextureEntry textureEntry,
-      String dataSource,
+      List<String> dataSources,
       String formatHint,
       @NonNull Map<String, String> httpHeaders,
       VideoPlayerOptions options) {
@@ -74,26 +76,29 @@ final class VideoPlayer {
 
     ExoPlayer exoPlayer = new ExoPlayer.Builder(context).build();
 
-    Uri uri = Uri.parse(dataSource);
     DataSource.Factory dataSourceFactory;
 
-    if (isHTTP(uri)) {
-      DefaultHttpDataSource.Factory httpDataSourceFactory =
-          new DefaultHttpDataSource.Factory()
-              .setUserAgent("ExoPlayer")
-              .setAllowCrossProtocolRedirects(true);
+    for (String dataSource : dataSources) {
+      Uri uri = Uri.parse(dataSource);
+      if (isHTTP(uri)) {
+        DefaultHttpDataSource.Factory httpDataSourceFactory =
+                new DefaultHttpDataSource.Factory()
+                        .setUserAgent("ExoPlayer")
+                        .setAllowCrossProtocolRedirects(true);
 
-      if (httpHeaders != null && !httpHeaders.isEmpty()) {
-        httpDataSourceFactory.setDefaultRequestProperties(httpHeaders);
+        if (httpHeaders != null && !httpHeaders.isEmpty()) {
+          httpDataSourceFactory.setDefaultRequestProperties(httpHeaders);
+        }
+        dataSourceFactory = httpDataSourceFactory;
+      } else {
+        dataSourceFactory = new DefaultDataSource.Factory(context);
       }
-      dataSourceFactory = httpDataSourceFactory;
-    } else {
-      dataSourceFactory = new DefaultDataSource.Factory(context);
+
+      MediaSource mediaSource = buildMediaSource(uri, dataSourceFactory, formatHint, context);
+
+      exoPlayer.addMediaSource(mediaSource);
     }
 
-    MediaSource mediaSource = buildMediaSource(uri, dataSourceFactory, formatHint, context);
-
-    exoPlayer.setMediaSource(mediaSource);
     exoPlayer.prepare();
 
     setUpVideoPlayer(exoPlayer, new QueuingEventSink());

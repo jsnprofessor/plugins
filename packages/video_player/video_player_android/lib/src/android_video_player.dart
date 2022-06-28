@@ -32,32 +32,32 @@ class AndroidVideoPlayer extends VideoPlayerPlatform {
 
   @override
   Future<int?> create(DataSource dataSource) async {
-    String? asset;
+    List<String>? assets;
     String? packageName;
-    String? uri;
+    List<String>? uris;
     String? formatHint;
     Map<String, String> httpHeaders = <String, String>{};
     switch (dataSource.sourceType) {
       case DataSourceType.asset:
-        asset = dataSource.asset;
+        assets = dataSource.assets;
         packageName = dataSource.package;
         break;
       case DataSourceType.network:
-        uri = dataSource.uri;
+        uris = dataSource.uris;
         formatHint = _videoFormatStringMap[dataSource.formatHint];
         httpHeaders = dataSource.httpHeaders;
         break;
       case DataSourceType.file:
-        uri = dataSource.uri;
+        uris = dataSource.uris;
         break;
       case DataSourceType.contentUri:
-        uri = dataSource.uri;
+        uris = dataSource.uris;
         break;
     }
     final CreateMessage message = CreateMessage(
-      asset: asset,
+      assets: assets,
       packageName: packageName,
-      uri: uri,
+      uris: uris,
       httpHeaders: httpHeaders,
       formatHint: formatHint,
     );
