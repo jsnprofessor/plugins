@@ -34,19 +34,19 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
 
     switch (dataSource.sourceType) {
       case DataSourceType.asset:
-        message.asset = dataSource.asset;
+        message.assets = dataSource.assets;
         message.packageName = dataSource.package;
         break;
       case DataSourceType.network:
-        message.uri = dataSource.uri;
+        message.uris = dataSource.uris;
         message.formatHint = _videoFormatStringMap[dataSource.formatHint];
         message.httpHeaders = dataSource.httpHeaders;
         break;
       case DataSourceType.file:
-        message.uri = dataSource.uri;
+        message.uris = dataSource.uris;
         break;
       case DataSourceType.contentUri:
-        message.uri = dataSource.uri;
+        message.uris = dataSource.uris;
         break;
     }
 

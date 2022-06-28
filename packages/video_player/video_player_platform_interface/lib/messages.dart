@@ -27,16 +27,16 @@ class TextureMessage {
 }
 
 class CreateMessage {
-  String? asset;
-  String? uri;
+  List<String>? assets;
+  List<String>? uris;
   String? packageName;
   String? formatHint;
   Map<Object?, Object?>? httpHeaders;
 
   Object encode() {
     final Map<Object?, Object?> pigeonMap = <Object?, Object?>{};
-    pigeonMap['asset'] = asset;
-    pigeonMap['uri'] = uri;
+    pigeonMap['assets'] = assets;
+    pigeonMap['uris'] = uris;
     pigeonMap['packageName'] = packageName;
     pigeonMap['formatHint'] = formatHint;
     pigeonMap['httpHeaders'] = httpHeaders;
@@ -46,8 +46,8 @@ class CreateMessage {
   static CreateMessage decode(Object message) {
     final Map<Object?, Object?> pigeonMap = message as Map<Object?, Object?>;
     return CreateMessage()
-      ..asset = pigeonMap['asset'] as String?
-      ..uri = pigeonMap['uri'] as String?
+      ..assets = (pigeonMap['assets'] as List<Object?>?)?.cast<String>()
+      ..uris = (pigeonMap['uris'] as List<Object?>?)?.cast<String>()
       ..packageName = pigeonMap['packageName'] as String?
       ..formatHint = pigeonMap['formatHint'] as String?
       ..httpHeaders = pigeonMap['httpHeaders'] as Map<Object?, Object?>?;
