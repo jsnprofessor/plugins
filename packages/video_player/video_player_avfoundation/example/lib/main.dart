@@ -58,7 +58,7 @@ class _ButterFlyAssetVideoState extends State<_ButterFlyAssetVideo> {
   @override
   void initState() {
     super.initState();
-    _controller = MiniController.asset('assets/Butterfly-209.mp4');
+    _controller = MiniController.asset(['assets/Butterfly-209.mp4']);
 
     _controller.addListener(() {
       setState(() {});
@@ -114,7 +114,7 @@ class _BumbleBeeRemoteVideoState extends State<_BumbleBeeRemoteVideo> {
   void initState() {
     super.initState();
     _controller = MiniController.network(
-      'https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4',
+      ['https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4'],
     );
 
     _controller.addListener(() {

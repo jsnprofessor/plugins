@@ -134,36 +134,36 @@ class VideoPlayerValue {
 class MiniController extends ValueNotifier<VideoPlayerValue> {
   /// Constructs a [MiniController] playing a video from an asset.
   ///
-  /// The name of the asset is given by the [dataSource] argument and must not be
+  /// The name of the asset is given by the [dataSources] argument and must not be
   /// null. The [package] argument must be non-null when the asset comes from a
   /// package and null otherwise.
-  MiniController.asset(this.dataSource, {this.package})
+  MiniController.asset(this.dataSources, {this.package})
       : dataSourceType = DataSourceType.asset,
         super(VideoPlayerValue(duration: Duration.zero));
 
   /// Constructs a [MiniController] playing a video from obtained from
   /// the network.
-  MiniController.network(this.dataSource)
+  MiniController.network(this.dataSources)
       : dataSourceType = DataSourceType.network,
         package = null,
         super(VideoPlayerValue(duration: Duration.zero));
 
   /// Constructs a [MiniController] playing a video from obtained from a file.
-  MiniController.file(File file)
-      : dataSource = 'file://${file.path}',
+  MiniController.file(List<File> files)
+      : dataSources = files.map((e) => 'file://${e.path}').toList(),
         dataSourceType = DataSourceType.file,
         package = null,
         super(VideoPlayerValue(duration: Duration.zero));
 
   /// The URI to the video file. This will be in different formats depending on
   /// the [DataSourceType] of the original video.
-  final String dataSource;
+  final List<String> dataSources;
 
   /// Describes the type of data source this [MiniController]
   /// is constructed with.
   final DataSourceType dataSourceType;
 
-  /// Only set for [asset] videos. The package that the asset was loaded from.
+  /// Only set for [assets] videos. The package that the asset was loaded from.
   final String? package;
 
   Timer? _timer;
@@ -180,7 +180,7 @@ class MiniController extends ValueNotifier<VideoPlayerValue> {
   @visibleForTesting
   int get textureId => _textureId;
 
-  /// Attempts to open the given [dataSource] and load metadata about the video.
+  /// Attempts to open the given [dataSources] and load metadata about the video.
   Future<void> initialize() async {
     _creatingCompleter = Completer<void>();
 
@@ -189,26 +189,26 @@ class MiniController extends ValueNotifier<VideoPlayerValue> {
       case DataSourceType.asset:
         dataSourceDescription = DataSource(
           sourceType: DataSourceType.asset,
-          asset: dataSource,
+          assets: dataSources,
           package: package,
         );
         break;
       case DataSourceType.network:
         dataSourceDescription = DataSource(
           sourceType: DataSourceType.network,
-          uri: dataSource,
+          uris: dataSources,
         );
         break;
       case DataSourceType.file:
         dataSourceDescription = DataSource(
           sourceType: DataSourceType.file,
-          uri: dataSource,
+          uris: dataSources,
         );
         break;
       case DataSourceType.contentUri:
         dataSourceDescription = DataSource(
           sourceType: DataSourceType.contentUri,
-          uri: dataSource,
+          uris: dataSources,
         );
         break;
     }

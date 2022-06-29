@@ -34,7 +34,7 @@
 @end
 
 @interface FLTVideoPlayer : NSObject <FlutterTexture, FlutterStreamHandler>
-@property(readonly, nonatomic) AVPlayer *player;
+@property(readonly, nonatomic) AVQueuePlayer *player;
 @property(readonly, nonatomic) AVPlayerItemVideoOutput *videoOutput;
 @property(readonly, nonatomic) CADisplayLink *displayLink;
 @property(nonatomic) FlutterEventChannel *eventChannel;
@@ -44,9 +44,9 @@
 @property(nonatomic, readonly) BOOL isPlaying;
 @property(nonatomic) BOOL isLooping;
 @property(nonatomic, readonly) BOOL isInitialized;
-- (instancetype)initWithURL:(NSURL *)url
-               frameUpdater:(FLTFrameUpdater *)frameUpdater
-                httpHeaders:(nonnull NSDictionary<NSString *, NSString *> *)headers;
+- (instancetype)initWithURLS:(NSArray *)urls
+                frameUpdater:(FLTFrameUpdater *)frameUpdater
+                 httpHeaders:(nonnull NSDictionary<NSString *, NSString *> *)headers;
 @end
 
 static void *timeRangeContext = &timeRangeContext;
@@ -58,9 +58,13 @@ static void *playbackBufferEmptyContext = &playbackBufferEmptyContext;
 static void *playbackBufferFullContext = &playbackBufferFullContext;
 
 @implementation FLTVideoPlayer
-- (instancetype)initWithAsset:(NSString *)asset frameUpdater:(FLTFrameUpdater *)frameUpdater {
-  NSString *path = [[NSBundle mainBundle] pathForResource:asset ofType:nil];
-  return [self initWithURL:[NSURL fileURLWithPath:path] frameUpdater:frameUpdater httpHeaders:@{}];
+- (instancetype)initWithAssets:(NSArray *)assets frameUpdater:(FLTFrameUpdater *)frameUpdater {
+  NSMutableArray<NSURL *> *urls = [[NSMutableArray alloc] init];
+  for (NSString *asset in assets) {
+    NSString *path = [[NSBundle mainBundle] pathForResource:asset ofType:nil];
+    [urls addObject:[NSURL fileURLWithPath:path]];
+  }
+  return [self initWithURLS:urls frameUpdater:frameUpdater httpHeaders:@{}];
 }
 
 - (void)addObservers:(AVPlayerItem *)item {
@@ -178,60 +182,65 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
   _displayLink.paused = YES;
 }
 
-- (instancetype)initWithURL:(NSURL *)url
-               frameUpdater:(FLTFrameUpdater *)frameUpdater
-                httpHeaders:(nonnull NSDictionary<NSString *, NSString *> *)headers {
+- (instancetype)initWithURLS:(NSArray<NSURL *> *)urls
+                frameUpdater:(FLTFrameUpdater *)frameUpdater
+                 httpHeaders:(nonnull NSDictionary<NSString *, NSString *> *)headers {
   NSDictionary<NSString *, id> *options = nil;
   if ([headers count] != 0) {
     options = @{@"AVURLAssetHTTPHeaderFieldsKey" : headers};
   }
-  AVURLAsset *urlAsset = [AVURLAsset URLAssetWithURL:url options:options];
-  AVPlayerItem *item = [AVPlayerItem playerItemWithAsset:urlAsset];
-  return [self initWithPlayerItem:item frameUpdater:frameUpdater];
+  NSMutableArray<AVPlayerItem *> *items = [[NSMutableArray alloc] init];
+  for (NSURL *url in urls) {
+    AVURLAsset *urlAsset = [AVURLAsset URLAssetWithURL:url options:options];
+    AVPlayerItem *item = [AVPlayerItem playerItemWithAsset:urlAsset];
+    [items addObject:item];
+  }
+  return [self initWithPlayerItems:items frameUpdater:frameUpdater];
 }
 
-- (instancetype)initWithPlayerItem:(AVPlayerItem *)item
-                      frameUpdater:(FLTFrameUpdater *)frameUpdater {
+- (instancetype)initWithPlayerItems:(NSArray<AVPlayerItem *> *)items
+                       frameUpdater:(FLTFrameUpdater *)frameUpdater {
   self = [super init];
   NSAssert(self, @"super init cannot be nil");
-
-  AVAsset *asset = [item asset];
-  void (^assetCompletionHandler)(void) = ^{
-    if ([asset statusOfValueForKey:@"tracks" error:nil] == AVKeyValueStatusLoaded) {
-      NSArray *tracks = [asset tracksWithMediaType:AVMediaTypeVideo];
-      if ([tracks count] > 0) {
-        AVAssetTrack *videoTrack = tracks[0];
-        void (^trackCompletionHandler)(void) = ^{
-          if (self->_disposed) return;
-          if ([videoTrack statusOfValueForKey:@"preferredTransform"
-                                        error:nil] == AVKeyValueStatusLoaded) {
-            // Rotate the video by using a videoComposition and the preferredTransform
-            self->_preferredTransform = FLTGetStandardizedTransformForTrack(videoTrack);
-            // Note:
-            // https://developer.apple.com/documentation/avfoundation/avplayeritem/1388818-videocomposition
-            // Video composition can only be used with file-based media and is not supported for
-            // use with media served using HTTP Live Streaming.
-            AVMutableVideoComposition *videoComposition =
-                [self getVideoCompositionWithTransform:self->_preferredTransform
-                                             withAsset:asset
-                                        withVideoTrack:videoTrack];
-            item.videoComposition = videoComposition;
-          }
-        };
-        [videoTrack loadValuesAsynchronouslyForKeys:@[ @"preferredTransform" ]
-                                  completionHandler:trackCompletionHandler];
+  for (AVPlayerItem *item in items) {
+    AVAsset *asset = [item asset];
+    void (^assetCompletionHandler)(void) = ^{
+      if ([asset statusOfValueForKey:@"tracks" error:nil] == AVKeyValueStatusLoaded) {
+        NSArray *tracks = [asset tracksWithMediaType:AVMediaTypeVideo];
+        if ([tracks count] > 0) {
+          AVAssetTrack *videoTrack = tracks[0];
+          void (^trackCompletionHandler)(void) = ^{
+            if (self->_disposed) return;
+            if ([videoTrack statusOfValueForKey:@"preferredTransform"
+                                          error:nil] == AVKeyValueStatusLoaded) {
+                // Rotate the video by using a videoComposition and the preferredTransform
+              self->_preferredTransform = FLTGetStandardizedTransformForTrack(videoTrack);
+                // Note:
+                // https://developer.apple.com/documentation/avfoundation/avplayeritem/1388818-videocomposition
+                // Video composition can only be used with file-based media and is not supported for
+                // use with media served using HTTP Live Streaming.
+              AVMutableVideoComposition *videoComposition =
+              [self getVideoCompositionWithTransform:self->_preferredTransform
+                                           withAsset:asset
+                                      withVideoTrack:videoTrack];
+              item.videoComposition = videoComposition;
+            }
+          };
+          [videoTrack loadValuesAsynchronouslyForKeys:@[ @"preferredTransform" ]
+                                    completionHandler:trackCompletionHandler];
+        }
       }
-    }
-  };
+    };
+    
+    [self addObservers:item];
+    
+    [asset loadValuesAsynchronouslyForKeys:@[ @"tracks" ] completionHandler:assetCompletionHandler];
+  }
 
-  _player = [AVPlayer playerWithPlayerItem:item];
+  _player = [[AVQueuePlayer alloc] initWithItems:items];
   _player.actionAtItemEnd = AVPlayerActionAtItemEndNone;
 
   [self createVideoOutputAndDisplayLink:frameUpdater];
-
-  [self addObservers:item];
-
-  [asset loadValuesAsynchronouslyForKeys:@[ @"tracks" ] completionHandler:assetCompletionHandler];
 
   return self;
 }
@@ -543,19 +552,27 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
 - (FLTTextureMessage *)create:(FLTCreateMessage *)input error:(FlutterError **)error {
   FLTFrameUpdater *frameUpdater = [[FLTFrameUpdater alloc] initWithRegistry:_registry];
   FLTVideoPlayer *player;
-  if (input.asset) {
-    NSString *assetPath;
-    if (input.packageName) {
-      assetPath = [_registrar lookupKeyForAsset:input.asset fromPackage:input.packageName];
-    } else {
-      assetPath = [_registrar lookupKeyForAsset:input.asset];
+  if (input.assets) {
+    NSMutableArray<NSString *> *assetPaths = [[NSMutableArray alloc] init];
+    for (NSString *asset in input.assets) {
+      NSString *assetPath;
+      if (input.packageName) {
+        assetPath = [_registrar lookupKeyForAsset:asset fromPackage:input.packageName];
+      } else {
+        assetPath = [_registrar lookupKeyForAsset:asset];
+      }
+      [assetPaths addObject:assetPath];
     }
-    player = [[FLTVideoPlayer alloc] initWithAsset:assetPath frameUpdater:frameUpdater];
+    player = [[FLTVideoPlayer alloc] initWithAssets:assetPaths frameUpdater:frameUpdater];
     return [self onPlayerSetup:player frameUpdater:frameUpdater];
-  } else if (input.uri) {
-    player = [[FLTVideoPlayer alloc] initWithURL:[NSURL URLWithString:input.uri]
-                                    frameUpdater:frameUpdater
-                                     httpHeaders:input.httpHeaders];
+  } else if (input.uris) {
+    NSMutableArray<NSURL *> *urls = [[NSMutableArray alloc] init];
+    for (NSString *uri in input.uris) {
+      [urls addObject:[NSURL URLWithString:uri]];
+    }
+    player = [[FLTVideoPlayer alloc] initWithURLS:urls
+                                     frameUpdater:frameUpdater
+                                      httpHeaders:input.httpHeaders];
     return [self onPlayerSetup:player frameUpdater:frameUpdater];
   } else {
     *error = [FlutterError errorWithCode:@"video_player" message:@"not implemented" details:nil];

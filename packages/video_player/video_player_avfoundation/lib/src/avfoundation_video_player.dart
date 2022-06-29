@@ -32,32 +32,32 @@ class AVFoundationVideoPlayer extends VideoPlayerPlatform {
 
   @override
   Future<int?> create(DataSource dataSource) async {
-    String? asset;
+    List<String?>? asset;
     String? packageName;
-    String? uri;
+    List<String?>? uri;
     String? formatHint;
     Map<String, String> httpHeaders = <String, String>{};
     switch (dataSource.sourceType) {
       case DataSourceType.asset:
-        asset = dataSource.asset;
+        asset = dataSource.assets;
         packageName = dataSource.package;
         break;
       case DataSourceType.network:
-        uri = dataSource.uri;
+        uri = dataSource.uris;
         formatHint = _videoFormatStringMap[dataSource.formatHint];
         httpHeaders = dataSource.httpHeaders;
         break;
       case DataSourceType.file:
-        uri = dataSource.uri;
+        uri = dataSource.uris;
         break;
       case DataSourceType.contentUri:
-        uri = dataSource.uri;
+        uri = dataSource.uris;
         break;
     }
     final CreateMessage message = CreateMessage(
-      asset: asset,
+      assets: asset,
       packageName: packageName,
-      uri: uri,
+      uris: uri,
       httpHeaders: httpHeaders,
       formatHint: formatHint,
     );
