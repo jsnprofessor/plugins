@@ -44,6 +44,7 @@
 @property(nonatomic, readonly) BOOL isPlaying;
 @property(nonatomic) BOOL isLooping;
 @property(nonatomic, readonly) BOOL isInitialized;
+@property(nonatomic) NSArray<NSURL *> *urls;
 - (instancetype)initWithURLS:(NSArray *)urls
                 frameUpdater:(FLTFrameUpdater *)frameUpdater
                  httpHeaders:(nonnull NSDictionary<NSString *, NSString *> *)headers;
@@ -96,23 +97,42 @@ static void *playbackBufferFullContext = &playbackBufferFullContext;
          forKeyPath:@"playbackBufferFull"
             options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew
             context:playbackBufferFullContext];
+}
 
-  // Add an observer that will respond to itemDidPlayToEndTime
-  [[NSNotificationCenter defaultCenter] addObserver:self
-                                           selector:@selector(itemDidPlayToEndTime:)
-                                               name:AVPlayerItemDidPlayToEndTimeNotification
-                                             object:item];
+- (void)removeObservers:(AVPlayerItem *)item {
+  @try {
+    [item removeObserver:self forKeyPath:@"loadedTimeRanges"];
+    [item removeObserver:self forKeyPath:@"status"];
+    [item removeObserver:self forKeyPath:@"presentationSize"];
+    [item removeObserver:self forKeyPath:@"duration"];
+    [item removeObserver:self forKeyPath:@"playbackLikelyToKeepUp"];
+    [item removeObserver:self forKeyPath:@"playbackBufferEmpty"];
+    [item removeObserver:self forKeyPath:@"playbackBufferFull"];
+  } @catch (NSException *exception) {
+    NSLog(@"%@", exception.reason);
+  }
 }
 
 - (void)itemDidPlayToEndTime:(NSNotification *)notification {
-  if (_isLooping) {
-    AVPlayerItem *p = [notification object];
-    [p seekToTime:kCMTimeZero completionHandler:nil];
-  } else {
+  AVPlayerItem *item = [notification object];
+  AVPlayerItem *lastItem = [[_player items] lastObject];
+  AVURLAsset *asset = (AVURLAsset*) [item asset];
+  if ([[asset URL] isEqual:[_urls lastObject]] && !_isLooping) {
+    [_player pause];
     if (_eventSink) {
       _eventSink(@{@"event" : @"completed"});
     }
+    return;
   }
+  if (item != lastItem) {
+    NSUInteger nextIndex = [[_player items] indexOfObject:item] + 1;
+    AVPlayerItem *nextItem = [[_player items] objectAtIndex:nextIndex];
+    [item removeOutput:_videoOutput];
+    [nextItem addOutput:_videoOutput];
+    [_player advanceToNextItem];
+    [_player insertItem:item afterItem:lastItem];
+  }
+  [_player seekToTime:kCMTimeZero];
 }
 
 const int64_t TIME_UNSET = -9223372036854775807;
@@ -185,6 +205,7 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
 - (instancetype)initWithURLS:(NSArray<NSURL *> *)urls
                 frameUpdater:(FLTFrameUpdater *)frameUpdater
                  httpHeaders:(nonnull NSDictionary<NSString *, NSString *> *)headers {
+  _urls = urls;
   NSDictionary<NSString *, id> *options = nil;
   if ([headers count] != 0) {
     options = @{@"AVURLAssetHTTPHeaderFieldsKey" : headers};
@@ -203,40 +224,12 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
   self = [super init];
   NSAssert(self, @"super init cannot be nil");
   for (AVPlayerItem *item in items) {
-    AVAsset *asset = [item asset];
-    void (^assetCompletionHandler)(void) = ^{
-      if ([asset statusOfValueForKey:@"tracks" error:nil] == AVKeyValueStatusLoaded) {
-        NSArray *tracks = [asset tracksWithMediaType:AVMediaTypeVideo];
-        if ([tracks count] > 0) {
-          AVAssetTrack *videoTrack = tracks[0];
-          void (^trackCompletionHandler)(void) = ^{
-            if (self->_disposed) return;
-            if ([videoTrack statusOfValueForKey:@"preferredTransform"
-                                          error:nil] == AVKeyValueStatusLoaded) {
-                // Rotate the video by using a videoComposition and the preferredTransform
-              self->_preferredTransform = FLTGetStandardizedTransformForTrack(videoTrack);
-                // Note:
-                // https://developer.apple.com/documentation/avfoundation/avplayeritem/1388818-videocomposition
-                // Video composition can only be used with file-based media and is not supported for
-                // use with media served using HTTP Live Streaming.
-              AVMutableVideoComposition *videoComposition =
-              [self getVideoCompositionWithTransform:self->_preferredTransform
-                                           withAsset:asset
-                                      withVideoTrack:videoTrack];
-              item.videoComposition = videoComposition;
-            }
-          };
-          [videoTrack loadValuesAsynchronouslyForKeys:@[ @"preferredTransform" ]
-                                    completionHandler:trackCompletionHandler];
-        }
-      }
-    };
-    
-    [self addObservers:item];
-    
-    [asset loadValuesAsynchronouslyForKeys:@[ @"tracks" ] completionHandler:assetCompletionHandler];
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(itemDidPlayToEndTime:)
+                                                 name:AVPlayerItemDidPlayToEndTimeNotification
+                                               object:item];
   }
-
+  [self addObservers:[items firstObject]];
   _player = [[AVQueuePlayer alloc] initWithItems:items];
   _player.actionAtItemEnd = AVPlayerActionAtItemEndNone;
 
@@ -358,6 +351,7 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
       return;
     }
 
+    [self removeObservers:currentItem];
     _isInitialized = YES;
     _eventSink(@{
       @"event" : @"initialized",
@@ -469,13 +463,7 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
   _disposed = YES;
   [_displayLink invalidate];
   AVPlayerItem *currentItem = self.player.currentItem;
-  [currentItem removeObserver:self forKeyPath:@"status"];
-  [currentItem removeObserver:self forKeyPath:@"loadedTimeRanges"];
-  [currentItem removeObserver:self forKeyPath:@"presentationSize"];
-  [currentItem removeObserver:self forKeyPath:@"duration"];
-  [currentItem removeObserver:self forKeyPath:@"playbackLikelyToKeepUp"];
-  [currentItem removeObserver:self forKeyPath:@"playbackBufferEmpty"];
-  [currentItem removeObserver:self forKeyPath:@"playbackBufferFull"];
+  [self removeObservers:currentItem];
 
   [self.player replaceCurrentItemWithPlayerItem:nil];
   [[NSNotificationCenter defaultCenter] removeObserver:self];
