@@ -231,6 +231,13 @@ class MiniController extends ValueNotifier<VideoPlayerValue> {
           _platform.setLooping(_textureId, true);
           _applyPlayPause();
           break;
+        case VideoEventType.transition:
+          value = value.copyWith(
+            duration: event.duration,
+            size: event.size,
+            isInitialized: event.duration != null,
+          );
+          break;
         case VideoEventType.completed:
           pause().then((void pauseResult) => seekTo(value.duration));
           break;

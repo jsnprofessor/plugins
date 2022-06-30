@@ -267,9 +267,22 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
       case AVPlayerItemStatusUnknown:
         break;
       case AVPlayerItemStatusReadyToPlay:
-        [item addOutput:_videoOutput];
-        [self setupEventSinkIfReadyToPlay];
-        [self updatePlayingState];
+        if ([[asset URL] absoluteURL] == [_urls firstObject]) {
+          [self setupEventSinkIfReadyToPlay];
+          [self updatePlayingState];
+        }else{
+          CGSize size = item.presentationSize;
+          CGFloat width = size.width;
+          CGFloat height = size.height;
+          
+          int64_t duration = [self duration];
+          _eventSink(@{
+            @"event" : @"transition",
+            @"duration" : @(duration),
+            @"width" : @(width),
+            @"height" : @(height)
+          });
+        }
         break;
     }
   } else if (context == presentationSizeContext || context == durationContext) {
