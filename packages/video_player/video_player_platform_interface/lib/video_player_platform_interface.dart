@@ -266,6 +266,9 @@ enum VideoEventType {
   /// The video has been initialized.
   initialized,
 
+  /// The next video is starting.
+  transition,
+
   /// The playback has ended.
   completed,
 
