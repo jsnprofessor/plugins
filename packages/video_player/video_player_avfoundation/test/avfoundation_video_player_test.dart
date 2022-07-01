@@ -126,7 +126,7 @@ void main() {
     test('create with asset', () async {
       final int? textureId = await player.create(DataSource(
         sourceType: DataSourceType.asset,
-        assets: ['someAsset'],
+        assets: <String>['someAsset'],
         package: 'somePackage',
       ));
       expect(log.log.last, 'create');
@@ -138,7 +138,7 @@ void main() {
     test('create with network', () async {
       final int? textureId = await player.create(DataSource(
         sourceType: DataSourceType.network,
-        uris: ['someUri'],
+        uris: <String>['someUri'],
         formatHint: VideoFormat.dash,
       ));
       expect(log.log.last, 'create');
@@ -153,7 +153,7 @@ void main() {
     test('create with network (some headers)', () async {
       final int? textureId = await player.create(DataSource(
         sourceType: DataSourceType.network,
-        uris: ['someUri'],
+        uris: <String>['someUri'],
         httpHeaders: <String, String>{'Authorization': 'Bearer token'},
       ));
       expect(log.log.last, 'create');
@@ -169,7 +169,7 @@ void main() {
     test('create with file', () async {
       final int? textureId = await player.create(DataSource(
         sourceType: DataSourceType.file,
-        uris: ['someUri'],
+        uris: <String>['someUri'],
       ));
       expect(log.log.last, 'create');
       expect(log.createMessage?.uris?.first, 'someUri');

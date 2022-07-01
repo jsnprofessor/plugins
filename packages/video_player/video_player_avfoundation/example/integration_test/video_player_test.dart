@@ -44,7 +44,7 @@ void main() {
 
   group('asset videos', () {
     setUp(() {
-      _controller = MiniController.asset([_videoAssetKey]);
+      _controller = MiniController.asset(<String>[_videoAssetKey]);
     });
 
     testWidgets('registers expected implementation',
@@ -113,7 +113,7 @@ void main() {
       final File file = File('$tempDir/$filename');
       await file.writeAsBytes(bytes.buffer.asInt8List());
 
-      _controller = MiniController.file([file]);
+      _controller = MiniController.file(<File>[file]);
     });
 
     testWidgets('test video player using static file() method as constructor',
@@ -131,7 +131,7 @@ void main() {
   group('network videos', () {
     setUp(() {
       final String videoUrl = getUrlForAssetAsNetworkSource(_videoAssetKey);
-      _controller = MiniController.network([videoUrl]);
+      _controller = MiniController.network(<String>[videoUrl]);
     });
 
     testWidgets('reports buffering status', (WidgetTester tester) async {
@@ -170,7 +170,7 @@ void main() {
 
     testWidgets('live stream duration != 0', (WidgetTester tester) async {
       final MiniController livestreamController = MiniController.network(
-        ['https://flutter.github.io/assets-for-api-docs/assets/videos/hls/bee.m3u8'],
+        <String>['https://flutter.github.io/assets-for-api-docs/assets/videos/hls/bee.m3u8'],
       );
       await livestreamController.initialize();
 

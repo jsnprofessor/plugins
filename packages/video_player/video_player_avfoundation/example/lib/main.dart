@@ -58,7 +58,7 @@ class _ButterFlyAssetVideoState extends State<_ButterFlyAssetVideo> {
   @override
   void initState() {
     super.initState();
-    _controller = MiniController.asset(['assets/Butterfly-209.mp4']);
+    _controller = MiniController.asset(<String>['assets/Butterfly-209.mp4']);
 
     _controller.addListener(() {
       setState(() {});
@@ -114,7 +114,7 @@ class _BumbleBeeRemoteVideoState extends State<_BumbleBeeRemoteVideo> {
   void initState() {
     super.initState();
     _controller = MiniController.network(
-      [
+      <String>[
         'https://g-pst.playsee.app/vdo-hls-v1/!CGf3oKTzh!_720_s0.m3u8',
         'https://g-pst.playsee.app/vdo-hls-v1/!CGf3oKTzh!_720_s1.m3u8',
         'https://g-pst.playsee.app/vdo-hls-v1/!AQo74MC_SV_720_s0.m3u8',
