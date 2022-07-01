@@ -22,10 +22,10 @@ void main() {
           kIsWeb ? 'assets/Butterfly-209.webm' : 'assets/Butterfly-209.mp4';
 
       final VideoPlayerController controller = VideoPlayerController.asset(
-        videoAssetKey,
+        <String>[videoAssetKey],
       );
       final VideoPlayerController another = VideoPlayerController.asset(
-        videoAssetKey,
+        <String>[videoAssetKey],
       );
       await controller.initialize();
       await another.initialize();

@@ -18,7 +18,7 @@ void main() {
     VideoPlayerPlatform.instance = fakeVideoPlayerPlatform;
 
     final VideoPlayerController controller = VideoPlayerController.network(
-      'https://127.0.0.1',
+      <String>['https://127.0.0.1'],
     );
     await controller.initialize();
     expect(fakeVideoPlayerPlatform.calls.first, 'init');
