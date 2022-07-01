@@ -287,6 +287,9 @@ final class VideoPlayer {
   }
 
   void play() {
+    if (exoPlayer.getPlaybackState() == Player.STATE_ENDED){
+      exoPlayer.seekTo(0, 0);
+    }
     exoPlayer.setPlayWhenReady(true);
   }
 
