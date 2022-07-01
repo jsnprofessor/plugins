@@ -125,6 +125,9 @@ static void *playbackBufferFullContext = &playbackBufferFullContext;
   if (item != lastItem) {
     [_player advanceToNextItem];
     [_player insertItem:item afterItem:lastItem];
+    if ([[_player currentItem] status] == AVPlayerItemStatusReadyToPlay) {
+      [self sendTransitionEvent:[_player currentItem]];
+    }
   }
 }
 
@@ -263,17 +266,7 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
           [self setupEventSinkIfReadyToPlay];
           [self updatePlayingState];
         }else{
-          CGSize size = item.presentationSize;
-          CGFloat width = size.width;
-          CGFloat height = size.height;
-          
-          int64_t duration = [self duration];
-          _eventSink(@{
-            @"event" : @"transition",
-            @"duration" : @(duration),
-            @"width" : @(width),
-            @"height" : @(height)
-          });
+          [self sendTransitionEvent:item];
         }
         break;
     }
@@ -355,6 +348,20 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
       @"height" : @(height)
     });
   }
+}
+
+- (void)sendTransitionEvent:(AVPlayerItem *) item {
+  CGSize size = item.presentationSize;
+  CGFloat width = size.width;
+  CGFloat height = size.height;
+  
+  int64_t duration = [self duration];
+  _eventSink(@{
+    @"event" : @"transition",
+    @"duration" : @(duration),
+    @"width" : @(width),
+    @"height" : @(height)
+  });
 }
 
 - (void)play {
