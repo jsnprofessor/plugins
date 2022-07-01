@@ -228,7 +228,7 @@ class MiniController extends ValueNotifier<VideoPlayerValue> {
           );
           initializingCompleter.complete(null);
           _platform.setVolume(_textureId, 1.0);
-          _platform.setLooping(_textureId, true);
+          // _platform.setLooping(_textureId, true);
           _applyPlayPause();
           break;
         case VideoEventType.transition:
@@ -239,7 +239,7 @@ class MiniController extends ValueNotifier<VideoPlayerValue> {
           );
           break;
         case VideoEventType.completed:
-          pause().then((void pauseResult) => seekTo(value.duration));
+          // pause().then((void pauseResult) => seekTo(value.duration));
           break;
         case VideoEventType.bufferingUpdate:
           value = value.copyWith(buffered: event.buffered);

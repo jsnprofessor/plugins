@@ -114,10 +114,44 @@ class _BumbleBeeRemoteVideoState extends State<_BumbleBeeRemoteVideo> {
   void initState() {
     super.initState();
     _controller = MiniController.network(
-      ['https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4'],
+      [
+        'https://g-pst.playsee.app/vdo-hls-v1/!CGf3oKTzh!_720_s0.m3u8',
+        'https://g-pst.playsee.app/vdo-hls-v1/!CGf3oKTzh!_720_s1.m3u8',
+        'https://g-pst.playsee.app/vdo-hls-v1/!AQo74MC_SV_720_s0.m3u8',
+        'https://g-pst.playsee.app/vdo-hls-v1/!AQo74MC_SV_720_s1.m3u8',
+        'https://g-pst.playsee.app/vdo-hls-v1/!CkCCYxLFq~_720_s0.m3u8',
+        'https://g-pst.playsee.app/vdo-hls-v1/!CkCCYxLFq~_720_s1.m3u8',
+        'https://g-pst.playsee.app/vdo-hls-v1/!AymWDiU5_~_720_s0.m3u8',
+        'https://g-pst.playsee.app/vdo-hls-v1/!AymWDiU5_~_720_s1.m3u8',
+        'https://g-pst.playsee.app/vdo-hls-v1/!9OCxboy1c~_720_s0.m3u8',
+        'https://g-pst.playsee.app/vdo-hls-v1/!9OCxboy1c~_720_s1.m3u8',
+        'https://g-pst.playsee.app/vdo-hls-v1/!CjZ2f19fa~_720_s0.m3u8',
+        'https://g-pst.playsee.app/vdo-hls-v1/!CjZ2f19fa~_720_s1.m3u8',
+        'https://g-pst.playsee.app/vdo-hls-v1/!CkB9x5_yLV_720_s0.m3u8',
+        'https://g-pst.playsee.app/vdo-hls-v1/!CkB9x5_yLV_720_s1.m3u8',
+        'https://g-pst.playsee.app/vdo-hls-v1/!DR6VH6coO~_720_s0.m3u8',
+        'https://g-pst.playsee.app/vdo-hls-v1/!DR6VH6coO~_720_s1.m3u8',
+        'https://g-pst.playsee.app/vdo-hls-v1/!C0kZcEnRx~_720_s0.m3u8',
+        'https://g-pst.playsee.app/vdo-hls-v1/!C0kZcEnRx~_720_s1.m3u8',
+        'https://g-pst.playsee.app/vdo-hls-v1/!Cj5n2DquA~_720_s0.m3u8',
+        'https://g-pst.playsee.app/vdo-hls-v1/!Cj5n2DquA~_720_s1.m3u8',
+        'https://g-pst.playsee.app/vdo-hls-v1/!D!1PNGlxw~_720_s0.m3u8',
+        'https://g-pst.playsee.app/vdo-hls-v1/!D!1PNGlxw~_720_s1.m3u8',
+        'https://g-pst.playsee.app/vdo-hls-v1/!DOHAtPGW5~_720_s0.m3u8',
+        'https://g-pst.playsee.app/vdo-hls-v1/!DOHAtPGW5~_720_s1.m3u8',
+        'https://g-pst.playsee.app/vdo-hls-v1/!ACJ3!7cCr~_720_s0.m3u8',
+        'https://g-pst.playsee.app/vdo-hls-v1/!ACJ3!7cCr~_720_s1.m3u8',
+        'https://g-pst.playsee.app/vdo-hls-v1/!8YvuxSHPYV_720_s0.m3u8',
+        'https://g-pst.playsee.app/vdo-hls-v1/!8YvuxSHPYV_720_s1.m3u8',
+        'https://g-pst.playsee.app/vdo-hls-v1/!AydVlYZsh~_720_s0.m3u8',
+        'https://g-pst.playsee.app/vdo-hls-v1/!AydVlYZsh~_720_s1.m3u8',
+        'https://g-pst.playsee.app/vdo-hls-v1/!AWi9U4mdO!_720_s0.m3u8',
+        'https://g-pst.playsee.app/vdo-hls-v1/!AWi9U4mdO!_720_s1.m3u8',
+      ],
     );
 
     _controller.addListener(() {
+      print('Professor: ${_controller.value.position}/${_controller.value.duration}');
       setState(() {});
     });
     _controller.initialize();
@@ -183,16 +217,16 @@ class _ControlsOverlay extends StatelessWidget {
           child: controller.value.isPlaying
               ? const SizedBox.shrink()
               : Container(
-                  color: Colors.black26,
-                  child: const Center(
-                    child: Icon(
-                      Icons.play_arrow,
-                      color: Colors.white,
-                      size: 100.0,
-                      semanticLabel: 'Play',
-                    ),
-                  ),
-                ),
+            color: Colors.black26,
+            child: const Center(
+              child: Icon(
+                Icons.play_arrow,
+                color: Colors.white,
+                size: 100.0,
+                semanticLabel: 'Play',
+              ),
+            ),
+          ),
         ),
         GestureDetector(
           onTap: () {
