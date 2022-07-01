@@ -35,7 +35,6 @@
 
 @interface FLTVideoPlayer : NSObject <FlutterTexture, FlutterStreamHandler>
 @property(readonly, nonatomic) AVQueuePlayer *player;
-@property(readonly, nonatomic) AVPlayerItemVideoOutput *videoOutput;
 @property(readonly, nonatomic) CADisplayLink *displayLink;
 @property(nonatomic) FlutterEventChannel *eventChannel;
 @property(nonatomic) FlutterEventSink eventSink;
@@ -52,8 +51,6 @@
 
 static void *timeRangeContext = &timeRangeContext;
 static void *statusContext = &statusContext;
-static void *presentationSizeContext = &presentationSizeContext;
-static void *durationContext = &durationContext;
 static void *playbackLikelyToKeepUpContext = &playbackLikelyToKeepUpContext;
 static void *playbackBufferEmptyContext = &playbackBufferEmptyContext;
 static void *playbackBufferFullContext = &playbackBufferFullContext;
@@ -78,14 +75,6 @@ static void *playbackBufferFullContext = &playbackBufferFullContext;
             options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew
             context:statusContext];
   [item addObserver:self
-         forKeyPath:@"presentationSize"
-            options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew
-            context:presentationSizeContext];
-  [item addObserver:self
-         forKeyPath:@"duration"
-            options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew
-            context:durationContext];
-  [item addObserver:self
          forKeyPath:@"playbackLikelyToKeepUp"
             options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew
             context:playbackLikelyToKeepUpContext];
@@ -97,19 +86,28 @@ static void *playbackBufferFullContext = &playbackBufferFullContext;
          forKeyPath:@"playbackBufferFull"
             options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew
             context:playbackBufferFullContext];
+  [[NSNotificationCenter defaultCenter] addObserver:self
+                                           selector:@selector(itemDidPlayToEndTime:)
+                                               name:AVPlayerItemDidPlayToEndTimeNotification
+                                             object:item];
 }
 
 - (void)removeObservers:(AVPlayerItem *)item {
   @try {
     [item removeObserver:self forKeyPath:@"loadedTimeRanges"];
+  } @catch (NSException *exception) {}
+  @try {
     [item removeObserver:self forKeyPath:@"status"];
-    [item removeObserver:self forKeyPath:@"presentationSize"];
-    [item removeObserver:self forKeyPath:@"duration"];
+  } @catch (NSException *exception) {}
+  @try {
     [item removeObserver:self forKeyPath:@"playbackLikelyToKeepUp"];
+  } @catch (NSException *exception) {}
+  @try {
     [item removeObserver:self forKeyPath:@"playbackBufferEmpty"];
+  } @catch (NSException *exception) {}
+  @try {
     [item removeObserver:self forKeyPath:@"playbackBufferFull"];
   } @catch (NSException *exception) {
-    NSLog(@"%@", exception.reason);
   }
 }
 
@@ -125,14 +123,9 @@ static void *playbackBufferFullContext = &playbackBufferFullContext;
     return;
   }
   if (item != lastItem) {
-    NSUInteger nextIndex = [[_player items] indexOfObject:item] + 1;
-    AVPlayerItem *nextItem = [[_player items] objectAtIndex:nextIndex];
-    [item removeOutput:_videoOutput];
-    [nextItem addOutput:_videoOutput];
     [_player advanceToNextItem];
     [_player insertItem:item afterItem:lastItem];
   }
-  [_player seekToTime:kCMTimeZero];
 }
 
 const int64_t TIME_UNSET = -9223372036854775807;
@@ -189,12 +182,7 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
   return videoComposition;
 }
 
-- (void)createVideoOutputAndDisplayLink:(FLTFrameUpdater *)frameUpdater {
-  NSDictionary *pixBuffAttributes = @{
-    (id)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32BGRA),
-    (id)kCVPixelBufferIOSurfacePropertiesKey : @{}
-  };
-  _videoOutput = [[AVPlayerItemVideoOutput alloc] initWithPixelBufferAttributes:pixBuffAttributes];
+- (void)createDisplayLink:(FLTFrameUpdater *)frameUpdater {
 
   _displayLink = [CADisplayLink displayLinkWithTarget:frameUpdater
                                              selector:@selector(onDisplayLink:)];
@@ -223,17 +211,19 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
                        frameUpdater:(FLTFrameUpdater *)frameUpdater {
   self = [super init];
   NSAssert(self, @"super init cannot be nil");
+  NSDictionary *pixBuffAttributes = @{
+    (id)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32BGRA),
+    (id)kCVPixelBufferIOSurfacePropertiesKey : @{}
+  };
   for (AVPlayerItem *item in items) {
-    [[NSNotificationCenter defaultCenter] addObserver:self
-                                             selector:@selector(itemDidPlayToEndTime:)
-                                                 name:AVPlayerItemDidPlayToEndTimeNotification
-                                               object:item];
+    [self addObservers:item];
+    AVPlayerItemVideoOutput *videoOutput = [[AVPlayerItemVideoOutput alloc] initWithPixelBufferAttributes:pixBuffAttributes];
+    [item addOutput:videoOutput];
   }
   [self addObservers:[items firstObject]];
   _player = [[AVQueuePlayer alloc] initWithItems:items];
-  _player.actionAtItemEnd = AVPlayerActionAtItemEndNone;
 
-  [self createVideoOutputAndDisplayLink:frameUpdater];
+  [self createDisplayLink:frameUpdater];
 
   return self;
 }
@@ -242,10 +232,14 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
                       ofObject:(id)object
                         change:(NSDictionary *)change
                        context:(void *)context {
+  AVPlayerItem *item = (AVPlayerItem *)object;
+  if (_player.currentItem != item) {
+    return;
+  }
   if (context == timeRangeContext) {
     if (_eventSink != nil) {
       NSMutableArray<NSArray<NSNumber *> *> *values = [[NSMutableArray alloc] init];
-      for (NSValue *rangeValue in [object loadedTimeRanges]) {
+      for (NSValue *rangeValue in [item loadedTimeRanges]) {
         CMTimeRange range = [rangeValue CMTimeRangeValue];
         int64_t start = FLTCMTimeToMillis(range.start);
         [values addObject:@[ @(start), @(start + FLTCMTimeToMillis(range.duration)) ]];
@@ -253,7 +247,7 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
       _eventSink(@{@"event" : @"bufferingUpdate", @"values" : values});
     }
   } else if (context == statusContext) {
-    AVPlayerItem *item = (AVPlayerItem *)object;
+    AVURLAsset *asset = (AVURLAsset *)[item asset];
     switch (item.status) {
       case AVPlayerItemStatusFailed:
         if (_eventSink != nil) {
@@ -263,8 +257,6 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
                                 stringByAppendingString:[item.error localizedDescription]]
                     details:nil]);
         }
-        break;
-      case AVPlayerItemStatusUnknown:
         break;
       case AVPlayerItemStatusReadyToPlay:
         if ([[asset URL] absoluteURL] == [_urls firstObject]) {
@@ -284,15 +276,6 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
           });
         }
         break;
-    }
-  } else if (context == presentationSizeContext || context == durationContext) {
-    AVPlayerItem *item = (AVPlayerItem *)object;
-    if (item.status == AVPlayerItemStatusReadyToPlay) {
-      // Due to an apparent bug, when the player item is ready, it still may not have determined
-      // its presentation size or duration. When these properties are finally set, re-check if
-      // all required properties and instantiate the event sink if it is not already set up.
-      [self setupEventSinkIfReadyToPlay];
-      [self updatePlayingState];
     }
   } else if (context == playbackLikelyToKeepUpContext) {
     if ([[_player currentItem] isPlaybackLikelyToKeepUp]) {
@@ -364,7 +347,6 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
       return;
     }
 
-    [self removeObservers:currentItem];
     _isInitialized = YES;
     _eventSink(@{
       @"event" : @"initialized",
@@ -438,9 +420,10 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
 }
 
 - (CVPixelBufferRef)copyPixelBuffer {
-  CMTime outputItemTime = [_videoOutput itemTimeForHostTime:CACurrentMediaTime()];
-  if ([_videoOutput hasNewPixelBufferForItemTime:outputItemTime]) {
-    return [_videoOutput copyPixelBufferForItemTime:outputItemTime itemTimeForDisplay:NULL];
+  AVPlayerItemVideoOutput *videoOutput = (AVPlayerItemVideoOutput *)[[[_player currentItem] outputs] firstObject];
+  CMTime outputItemTime = [videoOutput itemTimeForHostTime:CACurrentMediaTime()];
+  if ([videoOutput hasNewPixelBufferForItemTime:outputItemTime]) {
+    return [videoOutput copyPixelBufferForItemTime:outputItemTime itemTimeForDisplay:NULL];
   } else {
     return NULL;
   }
@@ -475,8 +458,9 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
 - (void)disposeSansEventChannel {
   _disposed = YES;
   [_displayLink invalidate];
-  AVPlayerItem *currentItem = self.player.currentItem;
-  [self removeObservers:currentItem];
+  for (AVPlayerItem *item in [_player items]) {
+    [self removeObservers:item];
+  }
 
   [self.player replaceCurrentItemWithPlayerItem:nil];
   [[NSNotificationCenter defaultCenter] removeObserver:self];
@@ -539,8 +523,6 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
 }
 
 - (void)initialize:(FlutterError *__autoreleasing *)error {
-  // Allow audio playback when the Ring/Silent switch is set to silent
-  [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error:nil];
 
   [self.playersByTextureId
       enumerateKeysAndObjectsUsingBlock:^(NSNumber *textureId, FLTVideoPlayer *player, BOOL *stop) {
