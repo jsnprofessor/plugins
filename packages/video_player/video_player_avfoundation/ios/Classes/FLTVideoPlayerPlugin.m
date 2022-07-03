@@ -108,7 +108,10 @@ static void *playbackBufferFullContext = &playbackBufferFullContext;
 }
 
 - (void)itemDidPlayToEndTime:(NSNotification *)notification {
-  AVPlayerItem *item = [_player currentItem];
+  AVPlayerItem *item = [notification object];
+  if (![_items containsObject:item]) {
+    return;
+  }
   if (item == [_items lastObject] && !_isLooping) {
     _isPlaying = NO;
     [self updatePlayingState];
@@ -116,12 +119,12 @@ static void *playbackBufferFullContext = &playbackBufferFullContext;
       _eventSink(@{@"event" : @"completed"});
     }
   }
-  [_player advanceToNextItem];
-  [item seekToTime:kCMTimeZero];
-  [_player insertItem:item afterItem:NULL];
-  if (_isPlaying && [[_player currentItem] status] == AVPlayerItemStatusReadyToPlay) {
+  if ([[_player currentItem] status] == AVPlayerItemStatusReadyToPlay) {
     [self sendTransitionEvent:[_player currentItem]];
   }
+  [_player advanceToNextItem];
+  [_player insertItem:item afterItem:NULL];
+  [item seekToTime:kCMTimeZero];
 }
 
 const int64_t TIME_UNSET = -9223372036854775807;
