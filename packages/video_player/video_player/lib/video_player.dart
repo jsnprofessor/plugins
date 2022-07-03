@@ -47,6 +47,7 @@ class VideoPlayerValue {
     this.isPlaying = false,
     this.isLooping = false,
     this.isBuffering = false,
+    this.isCompleted = false,
     this.volume = 1.0,
     this.playbackSpeed = 1.0,
     this.rotationCorrection = 0,
@@ -98,6 +99,9 @@ class VideoPlayerValue {
 
   /// True if the video is currently buffering.
   final bool isBuffering;
+
+  /// True if the playlist playback is completed.
+  final bool isCompleted;
 
   /// The current volume of the playback.
   final double volume;
@@ -153,6 +157,7 @@ class VideoPlayerValue {
     bool? isPlaying,
     bool? isLooping,
     bool? isBuffering,
+    bool? isCompleted,
     double? volume,
     double? playbackSpeed,
     int? rotationCorrection,
@@ -169,6 +174,7 @@ class VideoPlayerValue {
       isPlaying: isPlaying ?? this.isPlaying,
       isLooping: isLooping ?? this.isLooping,
       isBuffering: isBuffering ?? this.isBuffering,
+      isCompleted: isCompleted ?? false,
       volume: volume ?? this.volume,
       playbackSpeed: playbackSpeed ?? this.playbackSpeed,
       rotationCorrection: rotationCorrection ?? this.rotationCorrection,
@@ -191,6 +197,7 @@ class VideoPlayerValue {
         'isPlaying: $isPlaying, '
         'isLooping: $isLooping, '
         'isBuffering: $isBuffering, '
+        'isCompleted: $isCompleted, '
         'volume: $volume, '
         'playbackSpeed: $playbackSpeed, '
         'errorDescription: $errorDescription)';
@@ -392,11 +399,10 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
           );
           break;
         case VideoEventType.completed:
-          // In this case we need to stop _timer, set isPlaying=false, and
-          // position=value.duration. Instead of setting the values directly,
-          // we use pause() and seekTo() to ensure the platform stops playing
-          // and seeks to the last frame of the video.
-          pause();
+          _timer?.cancel();
+          value = value.copyWith(
+            isCompleted: true,
+          );
           break;
         case VideoEventType.bufferingUpdate:
           value = value.copyWith(buffered: event.buffered);
