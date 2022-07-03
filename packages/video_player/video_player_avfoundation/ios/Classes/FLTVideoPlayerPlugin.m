@@ -36,6 +36,7 @@
 @interface FLTVideoPlayer : NSObject <FlutterTexture, FlutterStreamHandler>
 @property(readonly, nonatomic) AVQueuePlayer *player;
 @property(readonly, nonatomic) CADisplayLink *displayLink;
+@property(nonatomic) NSArray<AVPlayerItem *> *items;
 @property(nonatomic) FlutterEventChannel *eventChannel;
 @property(nonatomic) FlutterEventSink eventSink;
 @property(nonatomic) CGAffineTransform preferredTransform;
@@ -43,7 +44,6 @@
 @property(nonatomic, readonly) BOOL isPlaying;
 @property(nonatomic) BOOL isLooping;
 @property(nonatomic, readonly) BOOL isInitialized;
-@property(nonatomic) NSArray<NSURL *> *urls;
 - (instancetype)initWithURLS:(NSArray *)urls
                 frameUpdater:(FLTFrameUpdater *)frameUpdater
                  httpHeaders:(nonnull NSDictionary<NSString *, NSString *> *)headers;
@@ -86,10 +86,6 @@ static void *playbackBufferFullContext = &playbackBufferFullContext;
          forKeyPath:@"playbackBufferFull"
             options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew
             context:playbackBufferFullContext];
-  [[NSNotificationCenter defaultCenter] addObserver:self
-                                           selector:@selector(itemDidPlayToEndTime:)
-                                               name:AVPlayerItemDidPlayToEndTimeNotification
-                                             object:item];
 }
 
 - (void)removeObservers:(AVPlayerItem *)item {
@@ -112,22 +108,19 @@ static void *playbackBufferFullContext = &playbackBufferFullContext;
 }
 
 - (void)itemDidPlayToEndTime:(NSNotification *)notification {
-  AVPlayerItem *item = [notification object];
-  AVPlayerItem *lastItem = [[_player items] lastObject];
-  AVURLAsset *asset = (AVURLAsset*) [item asset];
-  if ([[asset URL] isEqual:[_urls lastObject]] && !_isLooping) {
-    [_player pause];
+  AVPlayerItem *item = [_player currentItem];
+  if (item == [_items lastObject] && !_isLooping) {
+    _isPlaying = NO;
+    [self updatePlayingState];
     if (_eventSink) {
       _eventSink(@{@"event" : @"completed"});
     }
-    return;
   }
-  if (item != lastItem) {
-    [_player advanceToNextItem];
-    [_player insertItem:item afterItem:lastItem];
-    if ([[_player currentItem] status] == AVPlayerItemStatusReadyToPlay) {
-      [self sendTransitionEvent:[_player currentItem]];
-    }
+  [_player advanceToNextItem];
+  [item seekToTime:kCMTimeZero];
+  [_player insertItem:item afterItem:NULL];
+  if (_isPlaying && [[_player currentItem] status] == AVPlayerItemStatusReadyToPlay) {
+    [self sendTransitionEvent:[_player currentItem]];
   }
 }
 
@@ -196,7 +189,6 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
 - (instancetype)initWithURLS:(NSArray<NSURL *> *)urls
                 frameUpdater:(FLTFrameUpdater *)frameUpdater
                  httpHeaders:(nonnull NSDictionary<NSString *, NSString *> *)headers {
-  _urls = urls;
   NSDictionary<NSString *, id> *options = nil;
   if ([headers count] != 0) {
     options = @{@"AVURLAssetHTTPHeaderFieldsKey" : headers};
@@ -207,6 +199,7 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
     AVPlayerItem *item = [AVPlayerItem playerItemWithAsset:urlAsset];
     [items addObject:item];
   }
+  _items = items;
   return [self initWithPlayerItems:items frameUpdater:frameUpdater];
 }
 
@@ -218,12 +211,15 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
     (id)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32BGRA),
     (id)kCVPixelBufferIOSurfacePropertiesKey : @{}
   };
+  [[NSNotificationCenter defaultCenter] addObserver:self
+                                           selector:@selector(itemDidPlayToEndTime:)
+                                               name:AVPlayerItemDidPlayToEndTimeNotification
+                                             object:nil];
   for (AVPlayerItem *item in items) {
     [self addObservers:item];
     AVPlayerItemVideoOutput *videoOutput = [[AVPlayerItemVideoOutput alloc] initWithPixelBufferAttributes:pixBuffAttributes];
     [item addOutput:videoOutput];
   }
-  [self addObservers:[items firstObject]];
   _player = [[AVQueuePlayer alloc] initWithItems:items];
 
   [self createDisplayLink:frameUpdater];
@@ -250,7 +246,6 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
       _eventSink(@{@"event" : @"bufferingUpdate", @"values" : values});
     }
   } else if (context == statusContext) {
-    AVURLAsset *asset = (AVURLAsset *)[item asset];
     switch (item.status) {
       case AVPlayerItemStatusFailed:
         if (_eventSink != nil) {
@@ -262,12 +257,14 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
         }
         break;
       case AVPlayerItemStatusReadyToPlay:
-        if ([[asset URL] absoluteURL] == [_urls firstObject]) {
+        if (item == [_items firstObject]) {
           [self setupEventSinkIfReadyToPlay];
           [self updatePlayingState];
         }else{
           [self sendTransitionEvent:item];
         }
+        break;
+      case AVPlayerItemStatusUnknown:
         break;
     }
   } else if (context == playbackLikelyToKeepUpContext) {
@@ -365,8 +362,19 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
 }
 
 - (void)play {
-  _isPlaying = YES;
-  [self updatePlayingState];
+  if ([_player currentItem] == [_items lastObject] &&
+      CMTimeCompare([[_player currentItem] currentTime], [[_items lastObject] duration]) >= 0) {
+    AVPlayerItem *item = [_player currentItem];
+    [_player advanceToNextItem];
+    [item seekToTime:kCMTimeZero];
+    [_player insertItem:item afterItem:NULL];
+    if ([[_player currentItem] status] == AVPlayerItemStatusReadyToPlay) {
+      [self sendTransitionEvent:[_player currentItem]];
+    }
+  }else{
+    _isPlaying = YES;
+    [self updatePlayingState];
+  }
 }
 
 - (void)pause {
@@ -470,6 +478,7 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
   }
 
   [self.player replaceCurrentItemWithPlayerItem:nil];
+  self.items = nil;
   [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
