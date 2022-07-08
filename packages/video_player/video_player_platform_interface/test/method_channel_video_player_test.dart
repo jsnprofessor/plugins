@@ -130,11 +130,11 @@ void main() {
     test('create with asset', () async {
       final int? textureId = await player.create(DataSource(
         sourceType: DataSourceType.asset,
-        assets: ['someAsset'],
+        assets: <String>['someAsset'],
         package: 'somePackage',
       ));
       expect(log.log.last, 'create');
-      expect(log.createMessage?.assets, ['someAsset']);
+      expect(log.createMessage?.assets, <String>['someAsset']);
       expect(log.createMessage?.packageName, 'somePackage');
       expect(textureId, 3);
     });
@@ -142,12 +142,12 @@ void main() {
     test('create with network', () async {
       final int? textureId = await player.create(DataSource(
         sourceType: DataSourceType.network,
-        uris: ['someUri'],
+        uris: <String>['someUri'],
         formatHint: VideoFormat.dash,
       ));
       expect(log.log.last, 'create');
       expect(log.createMessage?.assets, null);
-      expect(log.createMessage?.uris, ['someUri']);
+      expect(log.createMessage?.uris, <String>['someUri']);
       expect(log.createMessage?.packageName, null);
       expect(log.createMessage?.formatHint, 'dash');
       expect(log.createMessage?.httpHeaders, <Object?, Object?>{});
@@ -157,12 +157,12 @@ void main() {
     test('create with network (some headers)', () async {
       final int? textureId = await player.create(DataSource(
         sourceType: DataSourceType.network,
-        uris: ['someUri'],
+        uris: <String>['someUri'],
         httpHeaders: <String, String>{'Authorization': 'Bearer token'},
       ));
       expect(log.log.last, 'create');
       expect(log.createMessage?.assets, null);
-      expect(log.createMessage?.uris, ['someUri']);
+      expect(log.createMessage?.uris, <String>['someUri']);
       expect(log.createMessage?.packageName, null);
       expect(log.createMessage?.formatHint, null);
       expect(log.createMessage?.httpHeaders,
@@ -173,10 +173,10 @@ void main() {
     test('create with file', () async {
       final int? textureId = await player.create(DataSource(
         sourceType: DataSourceType.file,
-        uris: ['someUri'],
+        uris: <String>['someUri'],
       ));
       expect(log.log.last, 'create');
-      expect(log.createMessage?.uris, ['someUri']);
+      expect(log.createMessage?.uris, <String>['someUri']);
       expect(textureId, 3);
     });
 
