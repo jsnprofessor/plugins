@@ -234,7 +234,7 @@ final class VideoPlayer {
           @Override
           public void onMediaItemTransition(@Nullable MediaItem mediaItem, int reason) {
             Map<String, Object> event = new HashMap<>();
-            event.put("event", "transition");
+            event.put("event", exoPlayer.getCurrentMediaItemIndex() == 0 ? "loop" : "transition");
             event.put("duration", exoPlayer.getDuration());
 
             if (exoPlayer.getVideoFormat() != null) {
@@ -258,7 +258,6 @@ final class VideoPlayer {
                 event.put("rotationCorrection", rotationDegrees);
               }
             }
-
             eventSink.success(event);
           }
 
@@ -287,7 +286,7 @@ final class VideoPlayer {
   }
 
   void play() {
-    if (exoPlayer.getPlaybackState() == Player.STATE_ENDED){
+    if (exoPlayer.getPlaybackState() == Player.STATE_ENDED) {
       exoPlayer.seekTo(0, 0);
     }
     exoPlayer.setPlayWhenReady(true);

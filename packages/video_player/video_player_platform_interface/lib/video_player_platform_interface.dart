@@ -272,6 +272,9 @@ enum VideoEventType {
   /// The playback has ended.
   completed,
 
+  /// The playback has restarted.
+  loop,
+
   /// Updated information on the buffering state.
   bufferingUpdate,
 
