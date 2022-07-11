@@ -39,6 +39,12 @@ class FakeController extends ValueNotifier<VideoPlayerValue>
   String get package => '';
 
   @override
+  bool isTotalDurationFinal = false;
+
+  @override
+  Duration previousDuration = Duration.zero;
+
+  @override
   Future<Duration> get position async => value.position;
 
   @override
@@ -420,10 +426,10 @@ void main() {
       );
       await controller.initialize();
       const Duration nonzeroDuration = Duration(milliseconds: 100);
-      controller.value = controller.value.copyWith(duration: nonzeroDuration);
-      await controller.seekTo(nonzeroDuration);
-      expect(controller.value.isPlaying, isFalse);
-      expect(controller.value.position, nonzeroDuration);
+      controller.value = controller.value.copyWith(
+        duration: nonzeroDuration,
+        isCompleted: true,
+      );
 
       await controller.play();
 
@@ -904,6 +910,7 @@ void main() {
           'VideoPlayerValue(duration: 0:00:05.000000, '
           'size: Size(400.0, 300.0), '
           'position: 0:00:01.000000, '
+          'playlistPosition: 0:00:00.000000, '
           'caption: Caption(number: 0, start: 0:00:00.000000, end: 0:00:00.000000, text: foo), '
           'captionOffset: 0:00:00.250000, '
           'buffered: [DurationRange(start: 0:00:00.000000, end: 0:00:04.000000)], '
@@ -911,6 +918,7 @@ void main() {
           'isPlaying: true, '
           'isLooping: true, '
           'isBuffering: true, '
+          'isCompleted: false, '
           'volume: 0.5, '
           'playbackSpeed: 1.5, '
           'errorDescription: null)');

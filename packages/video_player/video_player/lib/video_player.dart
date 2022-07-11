@@ -40,6 +40,7 @@ class VideoPlayerValue {
     required this.duration,
     this.size = Size.zero,
     this.position = Duration.zero,
+    this.playlistPosition = Duration.zero,
     this.caption = Caption.none,
     this.captionOffset = Duration.zero,
     this.buffered = const <DurationRange>[],
@@ -76,6 +77,9 @@ class VideoPlayerValue {
 
   /// The current playback position.
   final Duration position;
+
+  /// The current playlist position.
+  final Duration playlistPosition;
 
   /// The [Caption] that should be displayed based on the current [position].
   ///
@@ -150,6 +154,7 @@ class VideoPlayerValue {
     Duration? duration,
     Size? size,
     Duration? position,
+    Duration? playlistPosition,
     Caption? caption,
     Duration? captionOffset,
     List<DurationRange>? buffered,
@@ -167,6 +172,7 @@ class VideoPlayerValue {
       duration: duration ?? this.duration,
       size: size ?? this.size,
       position: position ?? this.position,
+      playlistPosition: playlistPosition ?? this.playlistPosition,
       caption: caption ?? this.caption,
       captionOffset: captionOffset ?? this.captionOffset,
       buffered: buffered ?? this.buffered,
@@ -190,6 +196,7 @@ class VideoPlayerValue {
         'duration: $duration, '
         'size: $size, '
         'position: $position, '
+        'playlistPosition: $playlistPosition, '
         'caption: $caption, '
         'captionOffset: $captionOffset, '
         'buffered: [${buffered.join(', ')}], '
@@ -303,6 +310,9 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   /// Only set for [asset] videos. The package that the asset was loaded from.
   final String? package;
 
+  /// Total duration of previous played media in playlist.
+  Duration previousDuration = Duration.zero;
+
   Future<ClosedCaptionFile>? _closedCaptionFileFuture;
   ClosedCaptionFile? _closedCaptionFile;
   Timer? _timer;
@@ -379,6 +389,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
 
       switch (event.eventType) {
         case VideoEventType.initialized:
+          print('Professor: initialized');
           value = value.copyWith(
             duration: event.duration,
             size: event.size,
@@ -392,16 +403,36 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
           _applyPlayPause();
           break;
         case VideoEventType.transition:
+          print('Professor: transition');
+          previousDuration += value.duration;
           value = value.copyWith(
+            position: value.duration,
             duration: event.duration,
+            playlistPosition: previousDuration,
             size: event.size,
             rotationCorrection: event.rotationCorrection,
           );
           break;
         case VideoEventType.completed:
+          print('Professor: completed');
+          previousDuration += value.duration;
           _timer?.cancel();
           value = value.copyWith(
+            position: value.duration,
+            playlistPosition: previousDuration,
+            isPlaying: false,
             isCompleted: true,
+          );
+          break;
+        case VideoEventType.loop:
+          print('Professor: loop');
+          previousDuration = Duration.zero;
+          value = value.copyWith(
+            position: Duration.zero,
+            duration: event.duration,
+            playlistPosition: Duration.zero,
+            size: event.size,
+            rotationCorrection: event.rotationCorrection,
           );
           break;
         case VideoEventType.bufferingUpdate:
@@ -465,10 +496,16 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   /// has been sent to the platform, not when playback itself is totally
   /// finished.
   Future<void> play() async {
-    if (value.position == value.duration) {
-      await seekTo(const Duration());
+    if (value.isCompleted) {
+      previousDuration = Duration.zero;
+      value = value.copyWith(
+        position: Duration.zero,
+        playlistPosition: Duration.zero,
+        isPlaying: true,
+      );
+    } else {
+      value = value.copyWith(isPlaying: true);
     }
-    value = value.copyWith(isPlaying: true);
     await _applyPlayPause();
   }
 
@@ -683,6 +720,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   void _updatePosition(Duration position) {
     value = value.copyWith(
       position: position,
+      playlistPosition: position + previousDuration,
       caption: _getCaptionAt(position),
     );
   }
