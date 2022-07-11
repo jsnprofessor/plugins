@@ -138,6 +138,13 @@ class AVFoundationVideoPlayer extends VideoPlayerPlatform {
             size: Size((map['width'] as num?)?.toDouble() ?? 0.0,
                 (map['height'] as num?)?.toDouble() ?? 0.0),
           );
+        case 'loop':
+          return VideoEvent(
+            eventType: VideoEventType.loop,
+            duration: Duration(milliseconds: map['duration'] as int),
+            size: Size((map['width'] as num?)?.toDouble() ?? 0.0,
+                (map['height'] as num?)?.toDouble() ?? 0.0),
+          );
         case 'completed':
           return VideoEvent(
             eventType: VideoEventType.completed,

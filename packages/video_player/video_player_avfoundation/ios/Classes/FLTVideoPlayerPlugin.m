@@ -42,6 +42,7 @@
 @property(nonatomic) CGAffineTransform preferredTransform;
 @property(nonatomic, readonly) BOOL disposed;
 @property(nonatomic, readonly) BOOL isPlaying;
+@property(nonatomic, readonly) BOOL isComplete;
 @property(nonatomic) BOOL isLooping;
 @property(nonatomic, readonly) BOOL isInitialized;
 - (instancetype)initWithURLS:(NSArray *)urls
@@ -112,19 +113,23 @@ static void *playbackBufferFullContext = &playbackBufferFullContext;
   if (![_items containsObject:item]) {
     return;
   }
-  if (item == [_items lastObject] && !_isLooping) {
-    _isPlaying = NO;
-    [self updatePlayingState];
-    if (_eventSink) {
-      _eventSink(@{@"event" : @"completed"});
-    }
-  }
-  if ([[_player currentItem] status] == AVPlayerItemStatusReadyToPlay) {
-    [self sendTransitionEvent:[_player currentItem]];
-  }
   [_player advanceToNextItem];
   [_player insertItem:item afterItem:NULL];
   [item seekToTime:kCMTimeZero];
+  if ([_player currentItem] == [_items firstObject]) {
+    if (_isLooping) {
+      [self sendEventWithDuration:@"loop" :[_player currentItem]];
+    } else {
+      _isComplete = YES;
+      _isPlaying = NO;
+      [self updatePlayingState];
+      if (_eventSink) {
+        _eventSink(@{@"event" : @"completed"});
+      }
+    }
+  } else if ([[_player currentItem] status] == AVPlayerItemStatusReadyToPlay) {
+    [self sendEventWithDuration:@"transition" :[_player currentItem]];
+  }
 }
 
 const int64_t TIME_UNSET = -9223372036854775807;
@@ -264,7 +269,7 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
           [self setupEventSinkIfReadyToPlay];
           [self updatePlayingState];
         }else{
-          [self sendTransitionEvent:item];
+          [self sendEventWithDuration:@"transition" :[_player currentItem]];
         }
         break;
       case AVPlayerItemStatusUnknown:
@@ -350,14 +355,15 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
   }
 }
 
-- (void)sendTransitionEvent:(AVPlayerItem *) item {
+- (void)sendEventWithDuration:(NSString *) event
+                             :(AVPlayerItem *) item {
   CGSize size = item.presentationSize;
   CGFloat width = size.width;
   CGFloat height = size.height;
   
   int64_t duration = [self duration];
   _eventSink(@{
-    @"event" : @"transition",
+    @"event" : event,
     @"duration" : @(duration),
     @"width" : @(width),
     @"height" : @(height)
@@ -365,19 +371,12 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
 }
 
 - (void)play {
-  if ([_player currentItem] == [_items lastObject] &&
-      CMTimeCompare([[_player currentItem] currentTime], [[_items lastObject] duration]) >= 0) {
-    AVPlayerItem *item = [_player currentItem];
-    [_player advanceToNextItem];
-    [item seekToTime:kCMTimeZero];
-    [_player insertItem:item afterItem:NULL];
-    if ([[_player currentItem] status] == AVPlayerItemStatusReadyToPlay) {
-      [self sendTransitionEvent:[_player currentItem]];
-    }
-  }else{
-    _isPlaying = YES;
-    [self updatePlayingState];
+  if (_isComplete) {
+    [self sendEventWithDuration:@"loop" :[_player currentItem]];
   }
+  _isComplete = NO;
+  _isPlaying = YES;
+  [self updatePlayingState];
 }
 
 - (void)pause {
