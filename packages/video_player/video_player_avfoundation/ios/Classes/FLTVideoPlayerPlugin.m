@@ -109,10 +109,10 @@ static void *playbackBufferFullContext = &playbackBufferFullContext;
 }
 
 - (void)itemDidPlayToEndTime:(NSNotification *)notification {
-  AVPlayerItem *item = [notification object];
-  if (![_items containsObject:item]) {
+  if ([_player currentItem] != [notification object]) {
     return;
   }
+  AVPlayerItem *item = [_player currentItem];
   [_player advanceToNextItem];
   [_player insertItem:item afterItem:NULL];
   [item seekToTime:kCMTimeZero];
@@ -229,6 +229,7 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
     [item addOutput:videoOutput];
   }
   _player = [[AVQueuePlayer alloc] initWithItems:items];
+  _player.actionAtItemEnd = AVPlayerActionAtItemEndNone;
 
   [self createDisplayLink:frameUpdater];
 
