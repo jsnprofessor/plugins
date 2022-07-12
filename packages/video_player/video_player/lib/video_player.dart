@@ -389,7 +389,6 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
 
       switch (event.eventType) {
         case VideoEventType.initialized:
-          print('Professor: initialized');
           value = value.copyWith(
             duration: event.duration,
             size: event.size,
@@ -403,7 +402,6 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
           _applyPlayPause();
           break;
         case VideoEventType.transition:
-          print('Professor: transition');
           previousDuration += value.duration;
           value = value.copyWith(
             position: value.duration,
@@ -414,7 +412,6 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
           );
           break;
         case VideoEventType.completed:
-          print('Professor: completed');
           previousDuration += value.duration;
           _timer?.cancel();
           value = value.copyWith(
@@ -425,7 +422,6 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
           );
           break;
         case VideoEventType.loop:
-          print('Professor: loop');
           previousDuration = Duration.zero;
           value = value.copyWith(
             position: Duration.zero,
