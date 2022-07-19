@@ -329,13 +329,13 @@ class MiniController extends ValueNotifier<VideoPlayerValue> {
   }
 
   /// Sets the video's current timestamp to be at [position].
-  Future<void> seekTo(Duration position) async {
+  Future<void> seekTo(int mediaItemIndex, Duration position) async {
     if (position > value.duration) {
       position = value.duration;
     } else if (position < const Duration()) {
       position = const Duration();
     }
-    await _platform.seekTo(_textureId, position);
+    await _platform.seekTo(_textureId, mediaItemIndex, position);
     _updatePosition(position);
   }
 
@@ -438,7 +438,7 @@ class _VideoScrubberState extends State<_VideoScrubber> {
       final Offset tapPos = box.globalToLocal(globalPosition);
       final double relative = tapPos.dx / box.size.width;
       final Duration position = controller.value.duration * relative;
-      controller.seekTo(position);
+      controller.seekTo(0, position);
     }
 
     return GestureDetector(

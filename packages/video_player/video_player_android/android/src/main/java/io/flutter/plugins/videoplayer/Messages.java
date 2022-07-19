@@ -242,6 +242,15 @@ public class Messages {
       this.textureId = setterArg;
     }
 
+    private @NonNull Long mediaItemIndex;
+    public @NonNull Long getMediaItemIndex() { return mediaItemIndex; }
+    public void setMediaItemIndex(@NonNull Long setterArg) {
+      if (setterArg == null) {
+        throw new IllegalStateException("Nonnull field \"mediaItemIndex\" is null.");
+      }
+      this.mediaItemIndex = setterArg;
+    }
+
     private @NonNull Long position;
     public @NonNull Long getPosition() { return position; }
     public void setPosition(@NonNull Long setterArg) {
@@ -259,6 +268,11 @@ public class Messages {
         this.textureId = setterArg;
         return this;
       }
+      private @Nullable Long mediaItemIndex;
+      public @NonNull Builder setMediaItemIndex(@NonNull Long setterArg) {
+        this.mediaItemIndex = setterArg;
+        return this;
+      }
       private @Nullable Long position;
       public @NonNull Builder setPosition(@NonNull Long setterArg) {
         this.position = setterArg;
@@ -267,6 +281,7 @@ public class Messages {
       public @NonNull PositionMessage build() {
         PositionMessage pigeonReturn = new PositionMessage();
         pigeonReturn.setTextureId(textureId);
+        pigeonReturn.setMediaItemIndex(mediaItemIndex);
         pigeonReturn.setPosition(position);
         return pigeonReturn;
       }
@@ -274,6 +289,7 @@ public class Messages {
     @NonNull Map<String, Object> toMap() {
       Map<String, Object> toMapResult = new HashMap<>();
       toMapResult.put("textureId", textureId);
+      toMapResult.put("mediaItemIndex", mediaItemIndex);
       toMapResult.put("position", position);
       return toMapResult;
     }
@@ -281,6 +297,8 @@ public class Messages {
       PositionMessage pigeonResult = new PositionMessage();
       Object textureId = map.get("textureId");
       pigeonResult.setTextureId((textureId == null) ? null : ((textureId instanceof Integer) ? (Integer)textureId : (Long)textureId));
+      Object mediaItemIndex = map.get("mediaItemIndex");
+      pigeonResult.setMediaItemIndex((mediaItemIndex == null) ? null : ((mediaItemIndex instanceof Integer) ? (Integer)mediaItemIndex : (Long)mediaItemIndex));
       Object position = map.get("position");
       pigeonResult.setPosition((position == null) ? null : ((position instanceof Integer) ? (Integer)position : (Long)position));
       return pigeonResult;

@@ -20,7 +20,7 @@ dependencies:
     git:
       url: https://github.com/jsnprofessor/plugins.git
       path: packages/video_player/video_player_platform_interface
-      ref: bb1ea04e
+      ref: 1bf76752
 
 dev_dependencies:
   flutter_driver:

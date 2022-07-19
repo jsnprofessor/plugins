@@ -198,6 +198,7 @@ public class VideoPlayerPlugin implements FlutterPlugin, AndroidVideoPlayerApi {
     PositionMessage result =
         new PositionMessage.Builder()
             .setPosition(player.getPosition())
+            .setMediaItemIndex(player.getMediaItemIndex())
             .setTextureId(arg.getTextureId())
             .build();
     player.sendBufferingUpdate();
@@ -206,7 +207,7 @@ public class VideoPlayerPlugin implements FlutterPlugin, AndroidVideoPlayerApi {
 
   public void seekTo(PositionMessage arg) {
     VideoPlayer player = videoPlayers.get(arg.getTextureId());
-    player.seekTo(arg.getPosition().intValue());
+    player.seekTo(arg.getMediaItemIndex().intValue(), arg.getPosition().intValue());
   }
 
   public void pause(TextureMessage arg) {
