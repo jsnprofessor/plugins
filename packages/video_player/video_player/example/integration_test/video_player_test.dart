@@ -96,7 +96,7 @@ void main() {
       (WidgetTester tester) async {
         await _controller.initialize();
 
-        await _controller.seekTo(const Duration(seconds: 3));
+        await _controller.seekTo(0, const Duration(seconds: 3));
 
         expect(_controller.value.position, const Duration(seconds: 3));
       },
@@ -132,13 +132,13 @@ void main() {
         await _controller.setVolume(0);
         final Duration tenMillisBeforeEnd =
             _controller.value.duration - const Duration(milliseconds: 10);
-        await _controller.seekTo(tenMillisBeforeEnd);
+        await _controller.seekTo(0, tenMillisBeforeEnd);
         await _controller.play();
         await tester.pumpAndSettle(_playDuration);
         expect(_controller.value.isPlaying, false);
         expect(_controller.value.position, _controller.value.duration);
 
-        await _controller.seekTo(tenMillisBeforeEnd);
+        await _controller.seekTo(0, tenMillisBeforeEnd);
         await tester.pumpAndSettle(_playDuration);
 
         expect(_controller.value.isPlaying, false);
@@ -154,7 +154,7 @@ void main() {
         // See https://developers.google.com/web/updates/2017/09/autoplay-policy-changes
         await _controller.setVolume(0);
         await _controller.seekTo(
-            _controller.value.duration - const Duration(milliseconds: 10));
+            0, _controller.value.duration - const Duration(milliseconds: 10));
         await _controller.play();
         await tester.pumpAndSettle(_playDuration);
         expect(_controller.value.isPlaying, false);
@@ -259,7 +259,7 @@ void main() {
         });
 
         await _controller.play();
-        await _controller.seekTo(const Duration(seconds: 5));
+        await _controller.seekTo(0, const Duration(seconds: 5));
         await tester.pumpAndSettle(_playDuration);
         await _controller.pause();
 
@@ -314,7 +314,7 @@ void main() {
 
     testWidgets('can seek', (WidgetTester tester) async {
       await _controller.initialize();
-      await _controller.seekTo(const Duration(seconds: 3));
+      await _controller.seekTo(0, const Duration(seconds: 3));
 
       expect(_controller.value.position, const Duration(seconds: 3));
     });

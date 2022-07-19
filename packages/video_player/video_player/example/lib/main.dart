@@ -349,7 +349,12 @@ class _ControlsOverlay extends StatelessWidget {
         ),
         GestureDetector(
           onTap: () {
-            controller.value.isPlaying ? controller.pause() : controller.play();
+            if (controller.value.isPlaying) {
+              controller.pause();
+            } else {
+              controller.seekTo(0, Duration.zero);
+              controller.play();
+            }
           },
         ),
         Align(

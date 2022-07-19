@@ -48,7 +48,7 @@ class FakeController extends ValueNotifier<VideoPlayerValue>
   Future<Duration> get position async => value.position;
 
   @override
-  Future<void> seekTo(Duration moment) async {}
+  Future<void> seekTo(int mediaItemIndex, Duration moment) async {}
 
   @override
   Future<void> setVolume(double volume) async {}
@@ -470,7 +470,7 @@ void main() {
         await controller.initialize();
         expect(await controller.position, const Duration(seconds: 0));
 
-        await controller.seekTo(const Duration(milliseconds: 500));
+        await controller.seekTo(0, const Duration(milliseconds: 500));
 
         expect(await controller.position, const Duration(milliseconds: 500));
       });
@@ -481,7 +481,7 @@ void main() {
         );
         expect(controller.value.isInitialized, isFalse);
 
-        await controller.seekTo(const Duration(milliseconds: 500));
+        await controller.seekTo(0, const Duration(milliseconds: 500));
 
         expect(fakeVideoPlayerPlatform.calls, isEmpty);
       });
@@ -493,10 +493,10 @@ void main() {
         await controller.initialize();
         expect(await controller.position, const Duration(seconds: 0));
 
-        await controller.seekTo(const Duration(seconds: 100));
+        await controller.seekTo(0, const Duration(seconds: 100));
         expect(await controller.position, const Duration(seconds: 1));
 
-        await controller.seekTo(const Duration(seconds: -100));
+        await controller.seekTo(0, const Duration(seconds: -100));
         expect(await controller.position, const Duration(seconds: 0));
       });
     });
@@ -620,25 +620,25 @@ void main() {
         expect(controller.value.position, const Duration());
         expect(controller.value.caption.text, '');
 
-        await controller.seekTo(const Duration(milliseconds: 100));
+        await controller.seekTo(0, const Duration(milliseconds: 100));
         expect(controller.value.caption.text, 'one');
 
-        await controller.seekTo(const Duration(milliseconds: 250));
+        await controller.seekTo(0, const Duration(milliseconds: 250));
         expect(controller.value.caption.text, '');
 
-        await controller.seekTo(const Duration(milliseconds: 300));
+        await controller.seekTo(0, const Duration(milliseconds: 300));
         expect(controller.value.caption.text, 'two');
 
-        await controller.seekTo(const Duration(milliseconds: 301));
+        await controller.seekTo(0, const Duration(milliseconds: 301));
         expect(controller.value.caption.text, 'two');
 
-        await controller.seekTo(const Duration(milliseconds: 500));
+        await controller.seekTo(0, const Duration(milliseconds: 500));
         expect(controller.value.caption.text, '');
 
-        await controller.seekTo(const Duration(milliseconds: 300));
+        await controller.seekTo(0, const Duration(milliseconds: 300));
         expect(controller.value.caption.text, 'two');
 
-        await controller.seekTo(const Duration(milliseconds: 301));
+        await controller.seekTo(0, const Duration(milliseconds: 301));
         expect(controller.value.caption.text, 'two');
       });
 
@@ -653,28 +653,28 @@ void main() {
         expect(controller.value.position, const Duration());
         expect(controller.value.caption.text, '');
 
-        await controller.seekTo(const Duration(milliseconds: 100));
+        await controller.seekTo(0, const Duration(milliseconds: 100));
         expect(controller.value.caption.text, 'one');
 
-        await controller.seekTo(const Duration(milliseconds: 101));
+        await controller.seekTo(0, const Duration(milliseconds: 101));
         expect(controller.value.caption.text, '');
 
-        await controller.seekTo(const Duration(milliseconds: 250));
+        await controller.seekTo(0, const Duration(milliseconds: 250));
         expect(controller.value.caption.text, 'two');
 
-        await controller.seekTo(const Duration(milliseconds: 300));
+        await controller.seekTo(0, const Duration(milliseconds: 300));
         expect(controller.value.caption.text, 'two');
 
-        await controller.seekTo(const Duration(milliseconds: 301));
+        await controller.seekTo(0, const Duration(milliseconds: 301));
         expect(controller.value.caption.text, '');
 
-        await controller.seekTo(const Duration(milliseconds: 500));
+        await controller.seekTo(0, const Duration(milliseconds: 500));
         expect(controller.value.caption.text, '');
 
-        await controller.seekTo(const Duration(milliseconds: 300));
+        await controller.seekTo(0, const Duration(milliseconds: 300));
         expect(controller.value.caption.text, 'two');
 
-        await controller.seekTo(const Duration(milliseconds: 301));
+        await controller.seekTo(0, const Duration(milliseconds: 301));
         expect(controller.value.caption.text, '');
       });
 
@@ -689,31 +689,31 @@ void main() {
         expect(controller.value.position, const Duration());
         expect(controller.value.caption.text, '');
 
-        await controller.seekTo(const Duration(milliseconds: 100));
+        await controller.seekTo(0, const Duration(milliseconds: 100));
         expect(controller.value.caption.text, '');
 
-        await controller.seekTo(const Duration(milliseconds: 200));
+        await controller.seekTo(0, const Duration(milliseconds: 200));
         expect(controller.value.caption.text, 'one');
 
-        await controller.seekTo(const Duration(milliseconds: 250));
+        await controller.seekTo(0, const Duration(milliseconds: 250));
         expect(controller.value.caption.text, 'one');
 
-        await controller.seekTo(const Duration(milliseconds: 300));
+        await controller.seekTo(0, const Duration(milliseconds: 300));
         expect(controller.value.caption.text, 'one');
 
-        await controller.seekTo(const Duration(milliseconds: 301));
+        await controller.seekTo(0, const Duration(milliseconds: 301));
         expect(controller.value.caption.text, '');
 
-        await controller.seekTo(const Duration(milliseconds: 400));
+        await controller.seekTo(0, const Duration(milliseconds: 400));
         expect(controller.value.caption.text, 'two');
 
-        await controller.seekTo(const Duration(milliseconds: 500));
+        await controller.seekTo(0, const Duration(milliseconds: 500));
         expect(controller.value.caption.text, 'two');
 
-        await controller.seekTo(const Duration(milliseconds: 600));
+        await controller.seekTo(0, const Duration(milliseconds: 600));
         expect(controller.value.caption.text, '');
 
-        await controller.seekTo(const Duration(milliseconds: 300));
+        await controller.seekTo(0, const Duration(milliseconds: 300));
         expect(controller.value.caption.text, 'one');
       });
 
@@ -1124,7 +1124,7 @@ class FakeVideoPlayerPlatform extends VideoPlayerPlatform {
   }
 
   @override
-  Future<void> seekTo(int textureId, Duration position) async {
+  Future<void> seekTo(int textureId, int mediaItemIndex, Duration position) async {
     calls.add('seekTo');
     _positions[textureId] = position;
   }

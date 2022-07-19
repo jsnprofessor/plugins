@@ -59,7 +59,7 @@ void main() {
       // Now replace it with `another` controller...
       await tester.pumpWidget(renderVideoWidget(another));
       await another.play();
-      await another.seekTo(const Duration(seconds: 5));
+      await another.seekTo(0, const Duration(seconds: 5));
       await tester.pumpAndSettle(_playDuration);
       await another.pause();
 
