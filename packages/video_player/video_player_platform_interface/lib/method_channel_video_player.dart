@@ -88,9 +88,10 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   }
 
   @override
-  Future<void> seekTo(int textureId, Duration position) {
+  Future<void> seekTo(int textureId, int mediaItemIndex, Duration position) {
     return _api.seekTo(PositionMessage()
       ..textureId = textureId
+      ..mediaItemIndex = mediaItemIndex
       ..position = position.inMilliseconds);
   }
 

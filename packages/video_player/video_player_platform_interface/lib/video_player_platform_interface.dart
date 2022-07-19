@@ -79,8 +79,8 @@ abstract class VideoPlayerPlatform extends PlatformInterface {
     throw UnimplementedError('setVolume() has not been implemented.');
   }
 
-  /// Sets the video position to a [Duration] from the start.
-  Future<void> seekTo(int textureId, Duration position) {
+  /// Sets the video position of a media item to a [Duration] from the start.
+  Future<void> seekTo(int textureId, int mediaItemIndex, Duration position) {
     throw UnimplementedError('seekTo() has not been implemented.');
   }
 

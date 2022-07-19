@@ -224,9 +224,10 @@ void main() {
     });
 
     test('seekTo', () async {
-      await player.seekTo(1, const Duration(milliseconds: 12345));
+      await player.seekTo(1, 0, const Duration(milliseconds: 12345));
       expect(log.log.last, 'seekTo');
       expect(log.positionMessage?.textureId, 1);
+      expect(log.positionMessage?.mediaItemIndex, 0);
       expect(log.positionMessage?.position, 12345);
     });
 

@@ -27,12 +27,13 @@ class PlaybackSpeedMessage {
 
 class PositionMessage {
   int textureId;
+  int mediaItemIndex;
   int position;
 }
 
 class CreateMessage {
-  String asset;
-  String uri;
+  List<String> assets;
+  List<String> uris;
   String packageName;
   String formatHint;
   Map<String, String> httpHeaders;
