@@ -110,15 +110,18 @@ class PlaybackSpeedMessage {
 class PositionMessage {
   PositionMessage({
     required this.textureId,
+    required this.mediaItemIndex,
     required this.position,
   });
 
   int textureId;
+  int mediaItemIndex;
   int position;
 
   Object encode() {
     final Map<Object?, Object?> pigeonMap = <Object?, Object?>{};
     pigeonMap['textureId'] = textureId;
+    pigeonMap['mediaItemIndex'] = mediaItemIndex;
     pigeonMap['position'] = position;
     return pigeonMap;
   }
@@ -127,6 +130,7 @@ class PositionMessage {
     final Map<Object?, Object?> pigeonMap = message as Map<Object?, Object?>;
     return PositionMessage(
       textureId: pigeonMap['textureId']! as int,
+      mediaItemIndex: pigeonMap['mediaItemIndex']! as int,
       position: pigeonMap['position']! as int,
     );
   }

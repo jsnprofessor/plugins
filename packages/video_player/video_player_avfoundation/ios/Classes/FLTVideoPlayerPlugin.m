@@ -385,6 +385,10 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
   [self updatePlayingState];
 }
 
+- (int64_t)mediaItemIndex {
+    return [_items indexOfObject:[_player currentItem]];
+}
+
 - (int64_t)position {
   return FLTCMTimeToMillis([_player currentTime]);
 }
@@ -396,13 +400,29 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
   return FLTCMTimeToMillis([[[_player currentItem] asset] duration]);
 }
 
-- (void)seekTo:(int)location {
+- (void)seekTo:(int)mediaItemIndex location:(int)location {
   // TODO(stuartmorgan): Update this to use completionHandler: to only return
   // once the seek operation is complete once the Pigeon API is updated to a
   // version that handles async calls.
-  [_player seekToTime:CMTimeMake(location, 1000)
-      toleranceBefore:kCMTimeZero
-       toleranceAfter:kCMTimeZero];
+  if (mediaItemIndex == [self mediaItemIndex]) {
+    [_player seekToTime:CMTimeMake(location, 1000)
+        toleranceBefore:kCMTimeZero
+         toleranceAfter:kCMTimeZero];
+  } else {
+    AVPlayerItem *item = [_items objectAtIndex:mediaItemIndex];
+    AVPlayerItem *currentItem = [_player currentItem];
+    AVPlayerItem *lastItem = [[_player items] lastObject];
+    NSUInteger index = [[_player items] indexOfObject:item];
+    for (AVPlayerItem *item in [[_player items] subarrayWithRange:NSMakeRange(1, index - 1)]) {
+      [_player removeItem:item];
+      [_player insertItem:item afterItem:NULL];
+    }
+    [item seekToTime:CMTimeMake(location, 1000)];
+    [_player advanceToNextItem];
+    [_player insertItem:currentItem afterItem:lastItem];
+    [currentItem seekToTime:kCMTimeZero];
+    [self sendEventWithDuration:@"transition" :[_player currentItem]];
+  }
 }
 
 - (void)setIsLooping:(BOOL)isLooping {
@@ -627,13 +647,14 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
 - (FLTPositionMessage *)position:(FLTTextureMessage *)input error:(FlutterError **)error {
   FLTVideoPlayer *player = self.playersByTextureId[input.textureId];
   FLTPositionMessage *result = [FLTPositionMessage makeWithTextureId:input.textureId
+                                                            mediaItemIndex:@([player mediaItemIndex])
                                                             position:@([player position])];
   return result;
 }
 
 - (void)seekTo:(FLTPositionMessage *)input error:(FlutterError **)error {
   FLTVideoPlayer *player = self.playersByTextureId[input.textureId];
-  [player seekTo:input.position.intValue];
+  [player seekTo:input.mediaItemIndex.intValue location:input.position.intValue];
   [self.registry textureFrameAvailable:input.textureId.intValue];
 }
 

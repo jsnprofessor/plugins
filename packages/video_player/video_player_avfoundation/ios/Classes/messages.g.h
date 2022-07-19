@@ -57,8 +57,10 @@ NS_ASSUME_NONNULL_BEGIN
 /// `init` unavailable to enforce nonnull fields, see the `make` class method.
 - (instancetype)init NS_UNAVAILABLE;
 + (instancetype)makeWithTextureId:(NSNumber *)textureId
+    mediaItemIndex:(NSNumber *)mediaItemIndex
     position:(NSNumber *)position;
 @property(nonatomic, strong) NSNumber * textureId;
+@property(nonatomic, strong) NSNumber * mediaItemIndex;
 @property(nonatomic, strong) NSNumber * position;
 @end
 

@@ -75,7 +75,7 @@ void main() {
     testWidgets('can seek', (WidgetTester tester) async {
       await _controller.initialize();
 
-      await _controller.seekTo(const Duration(seconds: 3));
+      await _controller.seekTo(0, const Duration(seconds: 3));
 
       // TODO(stuartmorgan): Switch to _controller.position once seekTo is
       // fixed on the native side to wait for completion, so this is testing
@@ -151,7 +151,7 @@ void main() {
       });
 
       await _controller.play();
-      await _controller.seekTo(const Duration(seconds: 5));
+      await _controller.seekTo(0, const Duration(seconds: 5));
       await tester.pumpAndSettle(_playDuration);
       await _controller.pause();
 

@@ -145,9 +145,11 @@ static id GetNullableObjectAtIndex(NSArray* array, NSInteger key) {
 
 @implementation FLTPositionMessage
 + (instancetype)makeWithTextureId:(NSNumber *)textureId
+    mediaItemIndex:(NSNumber *)mediaItemIndex
     position:(NSNumber *)position {
   FLTPositionMessage* pigeonResult = [[FLTPositionMessage alloc] init];
   pigeonResult.textureId = textureId;
+  pigeonResult.mediaItemIndex = mediaItemIndex;
   pigeonResult.position = position;
   return pigeonResult;
 }
@@ -155,12 +157,14 @@ static id GetNullableObjectAtIndex(NSArray* array, NSInteger key) {
   FLTPositionMessage *pigeonResult = [[FLTPositionMessage alloc] init];
   pigeonResult.textureId = GetNullableObject(dict, @"textureId");
   NSAssert(pigeonResult.textureId != nil, @"");
+  pigeonResult.mediaItemIndex = GetNullableObject(dict, @"mediaItemIndex");
+  NSAssert(pigeonResult.mediaItemIndex != nil, @"");
   pigeonResult.position = GetNullableObject(dict, @"position");
   NSAssert(pigeonResult.position != nil, @"");
   return pigeonResult;
 }
 - (NSDictionary *)toMap {
-  return [NSDictionary dictionaryWithObjectsAndKeys:(self.textureId ? self.textureId : [NSNull null]), @"textureId", (self.position ? self.position : [NSNull null]), @"position", nil];
+  return [NSDictionary dictionaryWithObjectsAndKeys:(self.textureId ? self.textureId : [NSNull null]), @"textureId", (self.mediaItemIndex ? self.mediaItemIndex : [NSNull null]), @"mediaItemIndex", (self.position ? self.position : [NSNull null]), @"position", nil];
 }
 @end
 

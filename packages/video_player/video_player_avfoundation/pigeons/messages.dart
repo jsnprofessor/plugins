@@ -38,8 +38,9 @@ class PlaybackSpeedMessage {
 }
 
 class PositionMessage {
-  PositionMessage(this.textureId, this.position);
+  PositionMessage(this.textureId, this.mediaItemIndex, this.position);
   int textureId;
+  int mediaItemIndex;
   int position;
 }
 
