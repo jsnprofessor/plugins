@@ -114,7 +114,9 @@ static void *playbackBufferFullContext = &playbackBufferFullContext;
   }
   AVPlayerItem *item = [_player currentItem];
   [_player advanceToNextItem];
-  [_player insertItem:item afterItem:NULL];
+  if ([_player canInsertItem:item afterItem:NULL]) {
+    [_player insertItem:item afterItem:NULL];
+  }
   [item seekToTime:kCMTimeZero];
   if ([_player currentItem] == [_items firstObject]) {
     if (_isLooping) {
@@ -415,11 +417,15 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
     NSUInteger index = [[_player items] indexOfObject:item];
     for (AVPlayerItem *item in [[_player items] subarrayWithRange:NSMakeRange(1, index - 1)]) {
       [_player removeItem:item];
-      [_player insertItem:item afterItem:NULL];
+      if ([_player canInsertItem:item afterItem:NULL]) {
+        [_player insertItem:item afterItem:NULL];
+      }
     }
     [item seekToTime:CMTimeMake(location, 1000)];
     [_player advanceToNextItem];
-    [_player insertItem:currentItem afterItem:lastItem];
+    if ([_player canInsertItem:item afterItem:lastItem]) {
+      [_player insertItem:item afterItem:lastItem];
+    }
     [currentItem seekToTime:kCMTimeZero];
     [self sendEventWithDuration:@"transition" :[_player currentItem]];
   }
