@@ -26,12 +26,12 @@ dependencies:
     git:
       url: https://github.com/jsnprofessor/plugins.git
       path: packages/video_player/video_player_android
-      ref: a9ae914b
+      ref: 58a92a60
   video_player_avfoundation:
     git:
       url: https://github.com/jsnprofessor/plugins.git
       path: packages/video_player/video_player_avfoundation
-      ref: a9ae914b
+      ref: 58a92a60
 
 dev_dependencies:
   flutter_test:
