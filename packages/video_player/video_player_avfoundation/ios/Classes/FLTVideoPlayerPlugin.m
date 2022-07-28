@@ -131,8 +131,6 @@ static void *playbackBufferFullContext = &playbackBufferFullContext;
         _eventSink(@{@"event" : @"completed"});
       }
     }
-  } else if ([[_player currentItem] status] == AVPlayerItemStatusReadyToPlay) {
-    [self sendEventWithDuration:@"transition" :[_player currentItem]];
   }
 }
 
