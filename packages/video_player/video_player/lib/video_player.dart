@@ -600,6 +600,11 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     if (_isDisposedOrNotInitialized) {
       return;
     }
+    previousDuration = Duration.zero;
+    value = value.copyWith(
+      position: position,
+      playlistPosition: position,
+    );
     if (position > value.duration) {
       position = value.duration;
     } else if (position < const Duration()) {
