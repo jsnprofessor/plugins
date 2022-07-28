@@ -113,7 +113,9 @@ static void *playbackBufferFullContext = &playbackBufferFullContext;
     return;
   }
   AVPlayerItem *item = [_player currentItem];
+  [self removeObservers:item];
   [_player advanceToNextItem];
+  [self addObservers:[_player currentItem]];
   if ([_player canInsertItem:item afterItem:NULL]) {
     [_player insertItem:item afterItem:NULL];
   }
@@ -415,6 +417,7 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
     AVPlayerItem *currentItem = [_player currentItem];
     AVPlayerItem *lastItem = [[_player items] lastObject];
     NSUInteger index = [[_player items] indexOfObject:item];
+    [self removeObservers:currentItem];
     for (AVPlayerItem *item in [[_player items] subarrayWithRange:NSMakeRange(1, index - 1)]) {
       [_player removeItem:item];
       if ([_player canInsertItem:item afterItem:NULL]) {
@@ -423,6 +426,7 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
     }
     [item seekToTime:CMTimeMake(location, 1000)];
     [_player advanceToNextItem];
+    [self addObservers:[_player currentItem]];
     if ([_player canInsertItem:item afterItem:lastItem]) {
       [_player insertItem:item afterItem:lastItem];
     }
