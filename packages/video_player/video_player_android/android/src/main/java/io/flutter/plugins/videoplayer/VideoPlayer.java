@@ -132,20 +132,20 @@ final class VideoPlayer {
           Uri uri, DataSource.Factory mediaDataSourceFactory, String formatHint, Context context) {
     int type;
     if (formatHint == null) {
-      type = Util.inferContentType(uri.getLastPathSegment());
+      type = Util.inferContentType(uri);
     } else {
       switch (formatHint) {
         case FORMAT_SS:
-          type = C.TYPE_SS;
+          type = C.CONTENT_TYPE_SS;
           break;
         case FORMAT_DASH:
-          type = C.TYPE_DASH;
+          type = C.CONTENT_TYPE_DASH;
           break;
         case FORMAT_HLS:
-          type = C.TYPE_HLS;
+          type = C.CONTENT_TYPE_HLS;
           break;
         case FORMAT_OTHER:
-          type = C.TYPE_OTHER;
+          type = C.CONTENT_TYPE_OTHER;
           break;
         default:
           type = -1;
@@ -153,20 +153,20 @@ final class VideoPlayer {
       }
     }
     switch (type) {
-      case C.TYPE_SS:
+      case C.CONTENT_TYPE_SS:
         return new SsMediaSource.Factory(
                 new DefaultSsChunkSource.Factory(mediaDataSourceFactory),
                 new DefaultDataSource.Factory(context, mediaDataSourceFactory))
             .createMediaSource(MediaItem.fromUri(uri));
-      case C.TYPE_DASH:
+      case C.CONTENT_TYPE_DASH:
         return new DashMediaSource.Factory(
                 new DefaultDashChunkSource.Factory(mediaDataSourceFactory),
                 new DefaultDataSource.Factory(context, mediaDataSourceFactory))
             .createMediaSource(MediaItem.fromUri(uri));
-      case C.TYPE_HLS:
+      case C.CONTENT_TYPE_HLS:
         return new HlsMediaSource.Factory(mediaDataSourceFactory)
             .createMediaSource(MediaItem.fromUri(uri));
-      case C.TYPE_OTHER:
+      case C.CONTENT_TYPE_OTHER:
         return new ProgressiveMediaSource.Factory(mediaDataSourceFactory)
             .createMediaSource(MediaItem.fromUri(uri));
       default:
@@ -278,6 +278,12 @@ final class VideoPlayer {
     // iOS supports a list of buffered ranges, so here is a list with a single range.
     event.put("values", Collections.singletonList(range));
     eventSink.success(event);
+  }
+
+  private static void setAudioAttributes(ExoPlayer exoPlayer, boolean isMixMode) {
+    exoPlayer.setAudioAttributes(
+        new AudioAttributes.Builder().setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),
+        !isMixMode);
   }
 
   void play() {
