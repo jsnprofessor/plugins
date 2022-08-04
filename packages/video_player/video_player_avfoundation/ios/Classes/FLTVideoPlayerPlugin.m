@@ -425,8 +425,8 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
     [item seekToTime:CMTimeMake(location, 1000)];
     [_player advanceToNextItem];
     [self addObservers:[_player currentItem]];
-    if ([_player canInsertItem:item afterItem:lastItem]) {
-      [_player insertItem:item afterItem:lastItem];
+    if ([_player canInsertItem:currentItem afterItem:lastItem]) {
+      [_player insertItem:currentItem afterItem:lastItem];
     }
     [currentItem seekToTime:kCMTimeZero];
     [self sendEventWithDuration:@"transition" :[_player currentItem]];
