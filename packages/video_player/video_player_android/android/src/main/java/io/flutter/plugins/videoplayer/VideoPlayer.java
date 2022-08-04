@@ -123,11 +123,6 @@ final class VideoPlayer {
     return scheme.equals("http") || scheme.equals("https");
   }
 
-  private static void setAudioAttributes(ExoPlayer exoPlayer, boolean isMixMode) {
-    exoPlayer.setAudioAttributes(
-            new AudioAttributes.Builder().setContentType(C.CONTENT_TYPE_MOVIE).build(), !isMixMode);
-  }
-
   private MediaSource buildMediaSource(
           Uri uri, DataSource.Factory mediaDataSourceFactory, String formatHint, Context context) {
     int type;
