@@ -9,6 +9,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:video_player_platform_interface/video_player_platform_interface.dart';
 
 import 'src/closed_caption_file.dart';
@@ -332,9 +333,8 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   int get textureId => _textureId;
 
   /// Attempts to open the given [dataSources] and load metadata about the video.
-  Future<void> initialize() async {
-    final bool allowBackgroundPlayback =
-        videoPlayerOptions?.allowBackgroundPlayback ?? false;
+  Future<void> initialize({BaseCacheManager? cacheManager}) async {
+    final bool allowBackgroundPlayback = videoPlayerOptions?.allowBackgroundPlayback ?? false;
     if (!allowBackgroundPlayback) {
       _lifeCycleObserver = _VideoAppLifeCycleObserver(this);
     }
@@ -351,6 +351,22 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
         );
         break;
       case DataSourceType.network:
+        cacheManager ??= DefaultCacheManager();
+        final cachedDataSources = <String>[];
+        for (final dataSource in dataSources) {
+          if (dataSource.startsWith('file://')) {
+            cachedDataSources.add(dataSource);
+            continue;
+          }
+          final fileInfo = await cacheManager.getFileFromCache(dataSource);
+          if (fileInfo != null) {
+            cachedDataSources.add('file://${fileInfo.file.path}');
+          } else {
+            cachedDataSources.add(dataSource);
+          }
+        }
+        dataSources.clear();
+        dataSources.addAll(cachedDataSources);
         dataSourceDescription = DataSource(
           sourceType: DataSourceType.network,
           uris: dataSources,
