@@ -342,6 +342,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     _creatingCompleter = Completer<void>();
 
     late DataSource dataSourceDescription;
+    final cachedDataSources = <String>[];
     switch (dataSourceType) {
       case DataSourceType.asset:
         dataSourceDescription = DataSource(
@@ -352,7 +353,6 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
         break;
       case DataSourceType.network:
         cacheManager ??= DefaultCacheManager();
-        final cachedDataSources = <String>[];
         for (final dataSource in dataSources) {
           if (dataSource.startsWith('file://')) {
             cachedDataSources.add(dataSource);
@@ -365,8 +365,6 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
             cachedDataSources.add(dataSource);
           }
         }
-        dataSources.clear();
-        dataSources.addAll(cachedDataSources);
         dataSourceDescription = DataSource(
           sourceType: DataSourceType.network,
           uris: dataSources,
@@ -413,6 +411,10 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
             errorDescription: null,
           );
           initializingCompleter.complete(null);
+          if (cachedDataSources.isNotEmpty) {
+            dataSources.clear();
+            dataSources.addAll(cachedDataSources);
+          }
           _applyLooping();
           _applyVolume();
           _applyPlayPause();
@@ -465,12 +467,19 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
       await _updateClosedCaptionWithFuture(_closedCaptionFileFuture);
     }
 
-    void errorListener(Object obj) {
+    Future<void> errorListener(Object obj) async {
       final PlatformException e = obj as PlatformException;
       value = VideoPlayerValue.erroneous(e.message!);
       _timer?.cancel();
-      if (!initializingCompleter.isCompleted) {
-        initializingCompleter.completeError(obj);
+      if (cachedDataSources.isEmpty) {
+        if (!initializingCompleter.isCompleted) {
+          initializingCompleter.completeError(obj);
+        }
+      } else {
+        cachedDataSources.clear();
+        _eventSubscription?.cancel();
+        _textureId = (await _videoPlayerPlatform.create(dataSourceDescription)) ?? kUninitializedTextureId;
+        _eventSubscription = _videoPlayerPlatform.videoEventsFor(_textureId).listen(eventListener, onError: errorListener);
       }
     }
 
