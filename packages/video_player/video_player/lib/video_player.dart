@@ -414,6 +414,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
           if (cachedDataSources.isNotEmpty) {
             dataSources.clear();
             dataSources.addAll(cachedDataSources);
+            cachedDataSources.clear();
           }
           _applyLooping();
           _applyVolume();
