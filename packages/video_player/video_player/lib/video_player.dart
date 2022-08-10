@@ -354,7 +354,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
       case DataSourceType.network:
         cacheManager ??= DefaultCacheManager();
         for (final dataSource in dataSources) {
-          if (dataSource.startsWith('file://')) {
+          if (dataSource.startsWith('file://') || dataSource.startsWith('http://127.0.0.1') || dataSource.startsWith('https://127.0.0.1')) {
             cachedDataSources.add(dataSource);
             continue;
           }
