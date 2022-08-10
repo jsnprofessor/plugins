@@ -367,7 +367,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
         }
         dataSourceDescription = DataSource(
           sourceType: DataSourceType.network,
-          uris: dataSources,
+          uris: cachedDataSources,
           formatHint: formatHint,
           httpHeaders: httpHeaders,
         );
@@ -478,6 +478,12 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
         }
       } else {
         cachedDataSources.clear();
+        dataSourceDescription = DataSource(
+          sourceType: DataSourceType.network,
+          uris: dataSources,
+          formatHint: formatHint,
+          httpHeaders: httpHeaders,
+        );
         _eventSubscription?.cancel();
         _textureId = (await _videoPlayerPlatform.create(dataSourceDescription)) ?? kUninitializedTextureId;
         _eventSubscription = _videoPlayerPlatform.videoEventsFor(_textureId).listen(eventListener, onError: errorListener);
