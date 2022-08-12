@@ -360,7 +360,24 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
           }
           final fileInfo = await cacheManager.getFileFromCache(dataSource);
           if (fileInfo != null) {
-            cachedDataSources.add('file://${fileInfo.file.path}');
+            if (dataSource.endsWith('.m3u8')) {
+              final uri = Uri.tryParse(dataSource);
+              if (uri != null && uri.isAbsolute == true) {
+                final localUri = uri.replace(
+                  scheme: 'http',
+                  host: '127.0.0.1',
+                  port: 49155,
+                  queryParameters: <String, dynamic>{
+                    ...uri.queryParameters,
+                    'origin_url': dataSource,
+                    'filepath': fileInfo.file.path,
+                  },
+                );
+                cachedDataSources.add(localUri.toString());
+              }
+            } else {
+              cachedDataSources.add('file://${fileInfo.file.path}');
+            }
           } else {
             cachedDataSources.add(dataSource);
           }
