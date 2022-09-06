@@ -39,11 +39,10 @@
 @property(nonatomic) NSArray<AVPlayerItem *> *items;
 @property(nonatomic) FlutterEventChannel *eventChannel;
 @property(nonatomic) FlutterEventSink eventSink;
-@property(nonatomic) CGAffineTransform preferredTransform;
 @property(nonatomic, readonly) BOOL disposed;
 @property(nonatomic, readonly) BOOL isPlaying;
 @property(nonatomic, readonly) BOOL isComplete;
-@property(nonatomic) BOOL isLooping;
+@property(nonatomic, readonly) BOOL isLooping;
 @property(nonatomic, readonly) BOOL isInitialized;
 - (instancetype)initWithURLS:(NSArray *)urls
                 frameUpdater:(FLTFrameUpdater *)frameUpdater
@@ -164,7 +163,7 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
   AVMutableVideoCompositionLayerInstruction *layerInstruction =
       [AVMutableVideoCompositionLayerInstruction
           videoCompositionLayerInstructionWithAssetTrack:videoTrack];
-  [layerInstruction setTransform:_preferredTransform atTime:kCMTimeZero];
+  [layerInstruction setTransform:transform atTime:kCMTimeZero];
 
   AVMutableVideoComposition *videoComposition = [AVMutableVideoComposition videoComposition];
   instruction.layerInstructions = @[ layerInstruction ];
@@ -174,7 +173,7 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
   CGFloat width = videoTrack.naturalSize.width;
   CGFloat height = videoTrack.naturalSize.height;
   NSInteger rotationDegrees =
-      (NSInteger)round(radiansToDegrees(atan2(_preferredTransform.b, _preferredTransform.a)));
+      (NSInteger)round(radiansToDegrees(atan2(transform.b, transform.a)));
   if (rotationDegrees == 90 || rotationDegrees == 270) {
     width = videoTrack.naturalSize.height;
     height = videoTrack.naturalSize.width;
@@ -207,6 +206,7 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
   for (NSURL *url in urls) {
     AVURLAsset *urlAsset = [AVURLAsset URLAssetWithURL:url options:options];
     AVPlayerItem *item = [AVPlayerItem playerItemWithAsset:urlAsset];
+    [self setItemVideoComposition:item];
     [items addObject:item];
   }
   _items = items;
@@ -355,6 +355,26 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
       @"width" : @(width),
       @"height" : @(height)
     });
+  }
+}
+
+- (void)setItemVideoComposition:(AVPlayerItem *) item {
+  AVAsset *asset = item.asset;
+  AVAssetTrack *videoTrack = [[asset tracksWithMediaType:AVMediaTypeVideo] firstObject];
+  if (videoTrack != nil) {
+    void (^trackCompletionHandler)(void) = ^{
+      if (self->_disposed) return;
+      if ([videoTrack statusOfValueForKey:@"preferredTransform"
+                                    error:nil] == AVKeyValueStatusLoaded) {
+        AVMutableVideoComposition *videoComposition =
+        [self getVideoCompositionWithTransform:FLTGetStandardizedTransformForTrack(videoTrack)
+                                     withAsset:asset
+                                withVideoTrack:videoTrack];
+        item.videoComposition = videoComposition;
+      }
+    };
+    [videoTrack loadValuesAsynchronouslyForKeys:@[ @"preferredTransform" ]
+                              completionHandler:trackCompletionHandler];
   }
 }
 
