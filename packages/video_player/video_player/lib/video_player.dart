@@ -656,8 +656,8 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     );
     if (position > value.duration) {
       position = value.duration;
-    } else if (position < const Duration()) {
-      position = const Duration();
+    } else if (position < Duration.zero) {
+      position = Duration.zero;
     }
     await _videoPlayerPlatform.seekTo(_textureId, mediaItemIndex, position);
     _updatePosition(position);

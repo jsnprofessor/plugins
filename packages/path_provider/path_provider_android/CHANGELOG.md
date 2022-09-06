@@ -1,3 +1,15 @@
+## NEXT
+
+* Updates minimum Flutter version to 2.10.
+
+## 2.0.20
+
+* Reverts changes in versions 2.0.18 and 2.0.19.
+
+## 2.0.19
+
+* Bumps kotlin to 1.7.10
+
 ## 2.0.18
 
 * Bumps `androidx.annotation:annotation` version to 1.4.0.

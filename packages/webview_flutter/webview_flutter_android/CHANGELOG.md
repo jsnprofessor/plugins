@@ -1,3 +1,12 @@
+## 2.10.0
+
+* Bumps webkit from 1.0.0 to 1.5.0.
+* Raises minimum `compileSdkVersion` to 32.
+
+## 2.9.5
+
+* Adds dispose methods for HostApi and FlutterApi of JavaObject.
+
 ## 2.9.4
 
 * Fixes avoid_redundant_argument_values lint warnings and minor typos.
