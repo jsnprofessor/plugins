@@ -247,7 +247,7 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
     return;
   }
   if (context == timeRangeContext) {
-    if (_eventSink != nil) {
+    if (_eventSink) {
       NSMutableArray<NSArray<NSNumber *> *> *values = [[NSMutableArray alloc] init];
       for (NSValue *rangeValue in [item loadedTimeRanges]) {
         CMTimeRange range = [rangeValue CMTimeRangeValue];
@@ -259,7 +259,7 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
   } else if (context == statusContext) {
     switch (item.status) {
       case AVPlayerItemStatusFailed:
-        if (_eventSink != nil) {
+        if (_eventSink) {
           _eventSink([FlutterError
               errorWithCode:@"VideoError"
                     message:[@"Failed to load video: "
@@ -281,16 +281,16 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
   } else if (context == playbackLikelyToKeepUpContext) {
     if ([[_player currentItem] isPlaybackLikelyToKeepUp]) {
       [self updatePlayingState];
-      if (_eventSink != nil) {
+      if (_eventSink) {
         _eventSink(@{@"event" : @"bufferingEnd"});
       }
     }
   } else if (context == playbackBufferEmptyContext) {
-    if (_eventSink != nil) {
+    if (_eventSink) {
       _eventSink(@{@"event" : @"bufferingStart"});
     }
   } else if (context == playbackBufferFullContext) {
-    if (_eventSink != nil) {
+    if (_eventSink) {
       _eventSink(@{@"event" : @"bufferingEnd"});
     }
   }
@@ -360,17 +360,19 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
 
 - (void)sendEventWithDuration:(NSString *) event
                              :(AVPlayerItem *) item {
-  CGSize size = item.presentationSize;
-  CGFloat width = size.width;
-  CGFloat height = size.height;
-  
-  int64_t duration = [self duration];
-  _eventSink(@{
-    @"event" : event,
-    @"duration" : @(duration),
-    @"width" : @(width),
-    @"height" : @(height)
-  });
+  if (_eventSink) {
+    CGSize size = item.presentationSize;
+    CGFloat width = size.width;
+    CGFloat height = size.height;
+    
+    int64_t duration = [self duration];
+    _eventSink(@{
+      @"event" : event,
+      @"duration" : @(duration),
+      @"width" : @(width),
+      @"height" : @(height)
+    });
+  }
 }
 
 - (void)play {
@@ -410,7 +412,7 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
     [_player seekToTime:CMTimeMake(location, 1000)
         toleranceBefore:kCMTimeZero
          toleranceAfter:kCMTimeZero];
-  } else {
+  } else if (mediaItemIndex < [[_player items] count]) {
     AVPlayerItem *item = [_items objectAtIndex:mediaItemIndex];
     AVPlayerItem *currentItem = [_player currentItem];
     AVPlayerItem *lastItem = [[_player items] lastObject];
@@ -445,7 +447,7 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
   // See https://developer.apple.com/library/archive/qa/qa1772/_index.html for an explanation of
   // these checks.
   if (speed > 2.0 && !_player.currentItem.canPlayFastForward) {
-    if (_eventSink != nil) {
+    if (_eventSink) {
       _eventSink([FlutterError errorWithCode:@"VideoError"
                                      message:@"Video cannot be fast-forwarded beyond 2.0x"
                                      details:nil]);
@@ -454,7 +456,7 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
   }
 
   if (speed < 1.0 && !_player.currentItem.canPlaySlowForward) {
-    if (_eventSink != nil) {
+    if (_eventSink) {
       _eventSink([FlutterError errorWithCode:@"VideoError"
                                      message:@"Video cannot be slow-forwarded"
                                      details:nil]);
