@@ -226,12 +226,12 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
                                                name:AVPlayerItemDidPlayToEndTimeNotification
                                              object:nil];
   for (AVPlayerItem *item in items) {
-    [self addObservers:item];
     AVPlayerItemVideoOutput *videoOutput = [[AVPlayerItemVideoOutput alloc] initWithPixelBufferAttributes:pixBuffAttributes];
     [item addOutput:videoOutput];
   }
   _player = [[AVQueuePlayer alloc] initWithItems:items];
   _player.actionAtItemEnd = AVPlayerActionAtItemEndNone;
+  [self addObservers:[_player currentItem]];
 
   [self createDisplayLink:frameUpdater];
 

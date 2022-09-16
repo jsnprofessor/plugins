@@ -334,15 +334,19 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
 
   /// Attempts to open the given [dataSources] and load metadata about the video.
   Future<void> initialize({BaseCacheManager? cacheManager}) async {
+    final Completer<void>? creatingCompleter = _creatingCompleter;
+    if (creatingCompleter != null) {
+      return creatingCompleter.future;
+    }
+    _creatingCompleter = Completer<void>();
     final bool allowBackgroundPlayback = videoPlayerOptions?.allowBackgroundPlayback ?? false;
     if (!allowBackgroundPlayback) {
       _lifeCycleObserver = _VideoAppLifeCycleObserver(this);
     }
     _lifeCycleObserver?.initialize();
-    _creatingCompleter = Completer<void>();
 
     late DataSource dataSourceDescription;
-    final cachedDataSources = <String>[];
+    final List<String> cachedDataSources = <String>[];
     switch (dataSourceType) {
       case DataSourceType.asset:
         dataSourceDescription = DataSource(
@@ -353,17 +357,17 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
         break;
       case DataSourceType.network:
         cacheManager ??= DefaultCacheManager();
-        for (final dataSource in dataSources) {
+        for (final String dataSource in dataSources) {
           if (dataSource.startsWith('file://') || dataSource.startsWith('http://127.0.0.1') || dataSource.startsWith('https://127.0.0.1')) {
             cachedDataSources.add(dataSource);
             continue;
           }
-          final fileInfo = await cacheManager.getFileFromCache(dataSource);
+          final FileInfo? fileInfo = await cacheManager.getFileFromCache(dataSource);
           if (fileInfo != null) {
             if (dataSource.endsWith('.m3u8')) {
-              final uri = Uri.tryParse(dataSource);
+              final Uri? uri = Uri.tryParse(dataSource);
               if (uri != null && uri.isAbsolute == true) {
-                final localUri = uri.replace(
+                final Uri localUri = uri.replace(
                   scheme: 'http',
                   host: '127.0.0.1',
                   port: 49155,
@@ -408,11 +412,6 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
           .setMixWithOthers(videoPlayerOptions!.mixWithOthers);
     }
 
-    _textureId = (await _videoPlayerPlatform.create(dataSourceDescription)) ??
-        kUninitializedTextureId;
-    _creatingCompleter!.complete(null);
-    final Completer<void> initializingCompleter = Completer<void>();
-
     void eventListener(VideoEvent event) {
       if (_isDisposed) {
         return;
@@ -427,7 +426,6 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
             isInitialized: event.duration != null,
             errorDescription: null,
           );
-          initializingCompleter.complete(null);
           if (cachedDataSources.isNotEmpty) {
             dataSources.clear();
             dataSources.addAll(cachedDataSources);
@@ -436,6 +434,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
           _applyLooping();
           _applyVolume();
           _applyPlayPause();
+          _creatingCompleter?.complete();
           break;
         case VideoEventType.transition:
           previousDuration += value.duration;
@@ -484,15 +483,20 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     if (_closedCaptionFileFuture != null) {
       await _updateClosedCaptionWithFuture(_closedCaptionFileFuture);
     }
+    if (_textureId != kUninitializedTextureId) {
+      _videoPlayerPlatform.dispose(_textureId);
+    }
+    _textureId = (await _videoPlayerPlatform.create(dataSourceDescription)) ?? kUninitializedTextureId;
 
     Future<void> errorListener(Object obj) async {
-      final PlatformException e = obj as PlatformException;
-      value = VideoPlayerValue.erroneous(e.message!);
-      _timer?.cancel();
+      if (_textureId != kUninitializedTextureId) {
+        _videoPlayerPlatform.dispose(_textureId);
+      }
       if (cachedDataSources.isEmpty) {
-        if (!initializingCompleter.isCompleted) {
-          initializingCompleter.completeError(obj);
-        }
+        final PlatformException e = obj as PlatformException;
+        value = VideoPlayerValue.erroneous(e.message!);
+        _timer?.cancel();
+        _creatingCompleter?.completeError(obj);
       } else {
         cachedDataSources.clear();
         dataSourceDescription = DataSource(
@@ -501,16 +505,15 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
           formatHint: formatHint,
           httpHeaders: httpHeaders,
         );
-        _eventSubscription?.cancel();
         _textureId = (await _videoPlayerPlatform.create(dataSourceDescription)) ?? kUninitializedTextureId;
+        _eventSubscription?.cancel();
         _eventSubscription = _videoPlayerPlatform.videoEventsFor(_textureId).listen(eventListener, onError: errorListener);
       }
     }
 
-    _eventSubscription = _videoPlayerPlatform
-        .videoEventsFor(_textureId)
-        .listen(eventListener, onError: errorListener);
-    return initializingCompleter.future;
+    _eventSubscription = _videoPlayerPlatform.videoEventsFor(_textureId).listen(eventListener, onError: errorListener);
+
+    return _creatingCompleter!.future;
   }
 
   @override
@@ -518,9 +521,8 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     if (_isDisposed) {
       return;
     }
-
     if (_creatingCompleter != null) {
-      await _creatingCompleter!.future;
+      await _creatingCompleter?.future;
       if (!_isDisposed) {
         _isDisposed = true;
         _timer?.cancel();
