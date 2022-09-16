@@ -6,6 +6,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 
+import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -228,12 +229,15 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   /// The name of the asset is given by the [dataSources] argument and must not be
   /// null. The [package] argument must be non-null when the asset comes from a
   /// package and null otherwise.
-  VideoPlayerController.asset(this.dataSources,
-      {this.package,
-      Future<ClosedCaptionFile>? closedCaptionFile,
-      this.videoPlayerOptions})
-      : _closedCaptionFileFuture = closedCaptionFile,
+  VideoPlayerController.asset(
+    this.dataSources, {
+    List<String>? fallbackDataSources,
+    this.package,
+    Future<ClosedCaptionFile>? closedCaptionFile,
+    this.videoPlayerOptions,
+  })  : _closedCaptionFileFuture = closedCaptionFile,
         dataSourceType = DataSourceType.asset,
+        fallbackDataSources = fallbackDataSources ?? <String>[],
         formatHint = null,
         httpHeaders = const <String, String>{},
         super(VideoPlayerValue(duration: Duration.zero));
@@ -249,12 +253,14 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   /// for the request to the [dataSources].
   VideoPlayerController.network(
     this.dataSources, {
+    List<String>? fallbackDataSources,
     this.formatHint,
     Future<ClosedCaptionFile>? closedCaptionFile,
     this.videoPlayerOptions,
     this.httpHeaders = const <String, String>{},
   })  : _closedCaptionFileFuture = closedCaptionFile,
         dataSourceType = DataSourceType.network,
+        fallbackDataSources = fallbackDataSources ?? <String>[],
         package = null,
         super(VideoPlayerValue(duration: Duration.zero));
 
@@ -262,11 +268,15 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   ///
   /// This will load the file from the file-URI given by:
   /// `'file://${file.path}'`.
-  VideoPlayerController.file(List<File> files,
-      {Future<ClosedCaptionFile>? closedCaptionFile, this.videoPlayerOptions})
-      : _closedCaptionFileFuture = closedCaptionFile,
+  VideoPlayerController.file(
+    List<File> files, {
+    List<File>? fallbackFiles,
+    Future<ClosedCaptionFile>? closedCaptionFile,
+    this.videoPlayerOptions,
+  })  : _closedCaptionFileFuture = closedCaptionFile,
         dataSources = files.map((File file) => 'file://${file.path}').toList(),
         dataSourceType = DataSourceType.file,
+        fallbackDataSources = fallbackFiles?.map((File file) => 'file://${file.path}').toList() ?? <String>[],
         package = null,
         formatHint = null,
         httpHeaders = const <String, String>{},
@@ -276,13 +286,16 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   ///
   /// This will load the video from the input content-URI.
   /// This is supported on Android only.
-  VideoPlayerController.contentUri(List<Uri> contentUris,
-      {Future<ClosedCaptionFile>? closedCaptionFile, this.videoPlayerOptions})
-      : assert(defaultTargetPlatform == TargetPlatform.android,
-            'VideoPlayerController.contentUri is only supported on Android.'),
+  VideoPlayerController.contentUri(
+    List<Uri> contentUris, {
+    List<Uri>? fallbackContentUris,
+    Future<ClosedCaptionFile>? closedCaptionFile,
+    this.videoPlayerOptions,
+  })  : assert(defaultTargetPlatform == TargetPlatform.android, 'VideoPlayerController.contentUri is only supported on Android.'),
         _closedCaptionFileFuture = closedCaptionFile,
         dataSources = contentUris.map((Uri contentUri) => contentUri.toString()).toList(),
         dataSourceType = DataSourceType.contentUri,
+        fallbackDataSources = fallbackContentUris?.map((Uri contentUri) => contentUri.toString()).toList() ?? <String>[],
         package = null,
         formatHint = null,
         httpHeaders = const <String, String>{},
@@ -291,6 +304,10 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   /// The URI to the video file. This will be in different formats depending on
   /// the [DataSourceType] of the original video.
   final List<String> dataSources;
+
+  /// The fallback URI to the video file. This will be in different formats depending on
+  /// the [DataSourceType] of the original video.
+  final List<String> fallbackDataSources;
 
   /// HTTP headers used for the request to the [dataSources].
   /// Only for [VideoPlayerController.network].
@@ -334,6 +351,9 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
 
   /// Attempts to open the given [dataSources] and load metadata about the video.
   Future<void> initialize({BaseCacheManager? cacheManager}) async {
+    if (_isDisposed) {
+      return;
+    }
     final Completer<void>? creatingCompleter = _creatingCompleter;
     if (creatingCompleter != null) {
       return creatingCompleter.future;
@@ -345,71 +365,77 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     }
     _lifeCycleObserver?.initialize();
 
-    late DataSource dataSourceDescription;
     final List<String> cachedDataSources = <String>[];
-    switch (dataSourceType) {
-      case DataSourceType.asset:
-        dataSourceDescription = DataSource(
-          sourceType: DataSourceType.asset,
-          assets: dataSources,
-          package: package,
-        );
-        break;
-      case DataSourceType.network:
-        cacheManager ??= DefaultCacheManager();
-        for (final String dataSource in dataSources) {
-          if (dataSource.startsWith('file://') || dataSource.startsWith('http://127.0.0.1') || dataSource.startsWith('https://127.0.0.1')) {
-            cachedDataSources.add(dataSource);
-            continue;
+    cacheManager ??= DefaultCacheManager();
+    for (final String dataSource in dataSources) {
+      if (dataSource.startsWith('file://') || dataSource.startsWith('http://127.0.0.1') || dataSource.startsWith('https://127.0.0.1')) {
+        cachedDataSources.add(dataSource);
+        continue;
+      }
+      final FileInfo? fileInfo = await cacheManager.getFileFromCache(dataSource);
+      if (fileInfo != null) {
+        if (dataSource.endsWith('.m3u8')) {
+          final Uri? uri = Uri.tryParse(dataSource);
+          if (uri != null && uri.isAbsolute == true) {
+            final Uri localUri = uri.replace(
+              scheme: 'http',
+              host: '127.0.0.1',
+              port: 49155,
+              queryParameters: <String, dynamic>{
+                ...uri.queryParameters,
+                'origin_url': dataSource,
+                'filepath': fileInfo.file.path,
+              },
+            );
+            cachedDataSources.add(localUri.toString());
           }
-          final FileInfo? fileInfo = await cacheManager.getFileFromCache(dataSource);
-          if (fileInfo != null) {
-            if (dataSource.endsWith('.m3u8')) {
-              final Uri? uri = Uri.tryParse(dataSource);
-              if (uri != null && uri.isAbsolute == true) {
-                final Uri localUri = uri.replace(
-                  scheme: 'http',
-                  host: '127.0.0.1',
-                  port: 49155,
-                  queryParameters: <String, dynamic>{
-                    ...uri.queryParameters,
-                    'origin_url': dataSource,
-                    'filepath': fileInfo.file.path,
-                  },
-                );
-                cachedDataSources.add(localUri.toString());
-              }
-            } else {
-              cachedDataSources.add('file://${fileInfo.file.path}');
-            }
-          } else {
-            cachedDataSources.add(dataSource);
-          }
+        } else {
+          cachedDataSources.add('file://${fileInfo.file.path}');
         }
-        dataSourceDescription = DataSource(
-          sourceType: DataSourceType.network,
-          uris: cachedDataSources,
-          formatHint: formatHint,
-          httpHeaders: httpHeaders,
-        );
-        break;
-      case DataSourceType.file:
-        dataSourceDescription = DataSource(
-          sourceType: DataSourceType.file,
-          uris: dataSources,
-        );
-        break;
-      case DataSourceType.contentUri:
-        dataSourceDescription = DataSource(
-          sourceType: DataSourceType.contentUri,
-          uris: dataSources,
-        );
-        break;
+      } else {
+        cachedDataSources.add(dataSource);
+      }
+    }
+    const DeepCollectionEquality deepCollectionEquality = DeepCollectionEquality();
+    if (deepCollectionEquality.equals(dataSources, cachedDataSources)) {
+      cachedDataSources.clear();
+    }
+    final List<String> fallbackDataSources = <String>[...this.fallbackDataSources];
+    if (deepCollectionEquality.equals(dataSources, fallbackDataSources)) {
+      fallbackDataSources.clear();
+    }
+    Future<DataSource> getDataSourceDescription(List<String> dataSources) async {
+      switch (dataSourceType) {
+        case DataSourceType.asset:
+          return DataSource(
+            sourceType: dataSourceType,
+            assets: dataSources,
+            package: package,
+          );
+        case DataSourceType.network:
+          return DataSource(
+            sourceType: dataSourceType,
+            uris: dataSources,
+            formatHint: formatHint,
+            httpHeaders: httpHeaders,
+          );
+        case DataSourceType.file:
+          return DataSource(
+            sourceType: dataSourceType,
+            uris: dataSources,
+          );
+        case DataSourceType.contentUri:
+          return DataSource(
+            sourceType: dataSourceType,
+            uris: dataSources,
+          );
+      }
     }
 
+    DataSource dataSourceDescription = await getDataSourceDescription(cachedDataSources.isEmpty ? dataSources : cachedDataSources);
+
     if (videoPlayerOptions?.mixWithOthers != null) {
-      await _videoPlayerPlatform
-          .setMixWithOthers(videoPlayerOptions!.mixWithOthers);
+      await _videoPlayerPlatform.setMixWithOthers(videoPlayerOptions!.mixWithOthers);
     }
 
     void eventListener(VideoEvent event) {
@@ -485,29 +511,42 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     }
     if (_textureId != kUninitializedTextureId) {
       _videoPlayerPlatform.dispose(_textureId);
+      _textureId = kUninitializedTextureId;
     }
+
     _textureId = (await _videoPlayerPlatform.create(dataSourceDescription)) ?? kUninitializedTextureId;
 
     Future<void> errorListener(Object obj) async {
-      if (_textureId != kUninitializedTextureId) {
-        _videoPlayerPlatform.dispose(_textureId);
+      if (_isDisposed) {
+        return;
       }
-      if (cachedDataSources.isEmpty) {
+      _timer?.cancel();
+      await _eventSubscription?.cancel();
+      if (_textureId != kUninitializedTextureId) {
+        await _videoPlayerPlatform.dispose(_textureId);
+        _textureId = kUninitializedTextureId;
+      }
+      if (value.isInitialized) {
         final PlatformException e = obj as PlatformException;
         value = VideoPlayerValue.erroneous(e.message!);
-        _timer?.cancel();
-        _creatingCompleter?.completeError(obj);
-      } else {
-        cachedDataSources.clear();
-        dataSourceDescription = DataSource(
-          sourceType: DataSourceType.network,
-          uris: dataSources,
-          formatHint: formatHint,
-          httpHeaders: httpHeaders,
-        );
+        _lifeCycleObserver?.dispose();
+        _creatingCompleter = null;
+      } else if (cachedDataSources.isNotEmpty) {
+        dataSourceDescription = await getDataSourceDescription(dataSources);
         _textureId = (await _videoPlayerPlatform.create(dataSourceDescription)) ?? kUninitializedTextureId;
-        _eventSubscription?.cancel();
         _eventSubscription = _videoPlayerPlatform.videoEventsFor(_textureId).listen(eventListener, onError: errorListener);
+        cachedDataSources.clear();
+      } else if (fallbackDataSources.isNotEmpty) {
+        dataSourceDescription = await getDataSourceDescription(fallbackDataSources);
+        _textureId = (await _videoPlayerPlatform.create(dataSourceDescription)) ?? kUninitializedTextureId;
+        _eventSubscription = _videoPlayerPlatform.videoEventsFor(_textureId).listen(eventListener, onError: errorListener);
+        fallbackDataSources.clear();
+      } else {
+        final PlatformException e = obj as PlatformException;
+        value = VideoPlayerValue.erroneous(e.message!);
+        _lifeCycleObserver?.dispose();
+        _creatingCompleter?.completeError(obj);
+        _creatingCompleter = null;
       }
     }
 
@@ -522,12 +561,15 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
       return;
     }
     if (_creatingCompleter != null) {
-      await _creatingCompleter?.future;
+      await _creatingCompleter?.future.catchError((Object _) {});
       if (!_isDisposed) {
         _isDisposed = true;
         _timer?.cancel();
         await _eventSubscription?.cancel();
-        await _videoPlayerPlatform.dispose(_textureId);
+        if (_textureId != kUninitializedTextureId) {
+          await _videoPlayerPlatform.dispose(_textureId);
+          _textureId = kUninitializedTextureId;
+        }
       }
       _lifeCycleObserver?.dispose();
     }

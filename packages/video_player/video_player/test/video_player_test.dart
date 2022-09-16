@@ -32,6 +32,9 @@ class FakeController extends ValueNotifier<VideoPlayerValue>
   List<String> get dataSources => <String>[];
 
   @override
+  List<String> get fallbackDataSources => <String>[];
+
+  @override
   Map<String, String> get httpHeaders => <String, String>{};
 
   @override
