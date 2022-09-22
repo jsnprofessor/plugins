@@ -9,6 +9,7 @@ import android.net.Uri;
 import android.view.Surface;
 
 import com.google.android.exoplayer2.C;
+import com.google.android.exoplayer2.DefaultLoadControl;
 import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.MediaItem;
@@ -70,7 +71,17 @@ final class VideoPlayer {
     this.textureEntry = textureEntry;
     this.options = options;
 
-    ExoPlayer exoPlayer = new ExoPlayer.Builder(context).build();
+    ExoPlayer exoPlayer = new ExoPlayer.Builder(context)
+            .setLoadControl(new DefaultLoadControl.Builder()
+                    .setBufferDurationsMs(
+                            2000,
+                            6000,
+                            2000,
+                            2000
+                    )
+                    .setPrioritizeTimeOverSizeThresholds(false)
+                    .build())
+            .build();
 
     DataSource.Factory dataSourceFactory;
 
