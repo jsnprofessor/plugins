@@ -514,7 +514,14 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
       _textureId = kUninitializedTextureId;
     }
 
-    _textureId = (await _videoPlayerPlatform.create(dataSourceDescription)) ?? kUninitializedTextureId;
+    print('VideoPlayer: cachedDataSources: ${cachedDataSources.join(', ')}');
+    print('VideoPlayer: dataSources: ${dataSources.join(', ')}');
+    print('VideoPlayer: fallbackDataSources: ${fallbackDataSources.join(', ')}');
+    try {
+      _textureId = (await _videoPlayerPlatform.create(dataSourceDescription)) ?? kUninitializedTextureId;
+    } on Exception catch (e) {
+      print('VideoPlayer: Exception:${e.toString()}');
+    }
 
     Future<void> errorListener(Object obj) async {
       if (_isDisposed) {
@@ -527,21 +534,25 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
         _textureId = kUninitializedTextureId;
       }
       if (value.isInitialized) {
+        print('Professor: errorListener: value.isInitialized');
         final PlatformException e = obj as PlatformException;
         value = VideoPlayerValue.erroneous(e.message!);
         _lifeCycleObserver?.dispose();
         _creatingCompleter = null;
       } else if (cachedDataSources.isNotEmpty) {
+        print('Professor: errorListener: cachedDataSources.isNotEmpty');
         dataSourceDescription = await getDataSourceDescription(dataSources);
         _textureId = (await _videoPlayerPlatform.create(dataSourceDescription)) ?? kUninitializedTextureId;
         _eventSubscription = _videoPlayerPlatform.videoEventsFor(_textureId).listen(eventListener, onError: errorListener);
         cachedDataSources.clear();
       } else if (fallbackDataSources.isNotEmpty) {
+        print('Professor: errorListener: fallbackDataSources.isNotEmpty');
         dataSourceDescription = await getDataSourceDescription(fallbackDataSources);
         _textureId = (await _videoPlayerPlatform.create(dataSourceDescription)) ?? kUninitializedTextureId;
         _eventSubscription = _videoPlayerPlatform.videoEventsFor(_textureId).listen(eventListener, onError: errorListener);
         fallbackDataSources.clear();
       } else {
+        print('Professor: errorListener: else');
         final PlatformException e = obj as PlatformException;
         value = VideoPlayerValue.erroneous(e.message!);
         _lifeCycleObserver?.dispose();

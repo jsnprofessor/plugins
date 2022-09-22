@@ -562,6 +562,7 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
   player.eventChannel = eventChannel;
   self.playersByTextureId[@(textureId)] = player;
   FLTTextureMessage *result = [FLTTextureMessage makeWithTextureId:@(textureId)];
+  NSLog(@"VideoPlayer: create textureId: %lld, remaining: %lu", textureId, (unsigned long)[_playersByTextureId count]);
   return result;
 }
 
@@ -613,6 +614,7 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
   dispatch_async(dispatch_get_main_queue(), ^{
     [player dispose];
   });
+  NSLog(@"VideoPlayer: dispose textureId: %@, remaining: %ld", input.textureId, [_playersByTextureId count]);
 }
 
 - (void)setLooping:(FLTLoopingMessage *)input error:(FlutterError **)error {

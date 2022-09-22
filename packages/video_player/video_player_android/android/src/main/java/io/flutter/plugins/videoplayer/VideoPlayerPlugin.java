@@ -162,7 +162,7 @@ public class VideoPlayerPlugin implements FlutterPlugin, AndroidVideoPlayerApi {
               options);
     }
     videoPlayers.put(handle.id(), player);
-
+    Log.d("VideoPlayer: ", "create textureId: " + handle.id() + ", remaining: " + videoPlayers.size());
     TextureMessage result = new TextureMessage.Builder().setTextureId(handle.id()).build();
     return result;
   }
@@ -171,6 +171,7 @@ public class VideoPlayerPlugin implements FlutterPlugin, AndroidVideoPlayerApi {
     VideoPlayer player = videoPlayers.get(arg.getTextureId());
     player.dispose();
     videoPlayers.remove(arg.getTextureId());
+    Log.d("VideoPlayer: ", "dispose textureId: " + arg.getTextureId() + ", remaining: " + videoPlayers.size());
   }
 
   public void setLooping(LoopingMessage arg) {
