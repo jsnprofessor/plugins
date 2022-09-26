@@ -117,9 +117,9 @@ static void *playbackBufferFullContext = &playbackBufferFullContext;
   [_player advanceToNextItem];
   [self addObservers:[_player currentItem]];
   if ([_player canInsertItem:item afterItem:NULL]) {
+    [item seekToTime:kCMTimeZero];
     [_player insertItem:item afterItem:NULL];
   }
-  [item seekToTime:kCMTimeZero];
   if ([_player currentItem] == [_items firstObject]) {
     if (_isLooping) {
       [self sendEventWithDuration:@"loop" :[_player currentItem]];
@@ -428,9 +428,9 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
     [_player advanceToNextItem];
     [self addObservers:[_player currentItem]];
     if ([_player canInsertItem:currentItem afterItem:lastItem]) {
+      [currentItem seekToTime:kCMTimeZero];
       [_player insertItem:currentItem afterItem:lastItem];
     }
-    [currentItem seekToTime:kCMTimeZero];
     [self sendEventWithDuration:@"transition" :[_player currentItem]];
   }
 }
