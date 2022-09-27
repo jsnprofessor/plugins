@@ -40,6 +40,8 @@ import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.platform.PlatformView;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -105,6 +107,19 @@ final class GoogleMapController
     this.polylinesController = new PolylinesController(methodChannel, density);
     this.circlesController = new CirclesController(methodChannel, density);
     this.tileOverlaysController = new TileOverlaysController(methodChannel);
+
+    final Thread.UncaughtExceptionHandler defaultHandler = Thread.getDefaultUncaughtExceptionHandler();
+    Thread.setDefaultUncaughtExceptionHandler((thread, ex) -> {
+      if (ex instanceof NullPointerException) {
+        for (StackTraceElement stackTraceElement : ex.getStackTrace()) {
+          if (stackTraceElement.getClassName().contains("maps")) {
+            Log.d(TAG, "GoogleMapController NullPointerException:", ex);
+            return;
+          }
+        }
+      }
+      defaultHandler.uncaughtException(thread, ex);
+    });
   }
 
   @Override
@@ -216,7 +231,21 @@ final class GoogleMapController
     switch (call.method) {
       case "map#waitForMap":
         if (googleMap != null) {
-          result.success(null);
+          if (mapView != null) {
+            LatLngBounds latLngBounds = googleMap.getProjection().getVisibleRegion().latLngBounds;
+            Log.v(TAG, "stevenMap waitForMap northeast.latitude:" + latLngBounds.northeast.latitude
+                    + " northeast.longitude:" + latLngBounds.northeast.longitude
+                    + " southwest.latitude:" + latLngBounds.southwest.latitude
+                    + " southwest.longitude:" + latLngBounds.southwest.longitude);
+            if (latLngBounds.southwest.latitude == -180
+                    && latLngBounds.northeast.longitude == -180
+                    && latLngBounds.southwest.latitude == -180
+                    && latLngBounds.northeast.longitude == -180) {
+              mapView.postDelayed(() -> result.success(null), 500);
+            } else {
+              result.success(null);
+            }
+          }
           return;
         }
         mapReadyResult = result;
@@ -643,6 +672,28 @@ final class GoogleMapController
   public void onPause(@NonNull LifecycleOwner owner) {
     if (disposed) {
       return;
+    }
+    if (googleMap != null && mapView != null && mapView.getWidth() > 0 && mapView.getHeight() > 0) {//TODO try, for Exception
+      try {
+        SnapshotReadyCallback callback = snapshot -> {
+          try {
+            File file = new File(context.getDir("flutter", Context.MODE_PRIVATE).getAbsolutePath() + File.separator + "map.png");
+            file.createNewFile();
+            FileOutputStream fout = new FileOutputStream(file);
+
+            // Write the string to the file
+            snapshot.compress(Bitmap.CompressFormat.JPEG, 90, fout);
+            fout.flush();
+            fout.close();
+          }
+          catch (Exception e) {
+            Log.d("GoogleMapController", "onPause SnapshotReadyCallback Exception:" + e);
+          }
+        };
+        googleMap.snapshot(callback);
+      } catch (Exception e) {
+        Log.d("GoogleMapController", "onPause Exception:" + e);
+      }
     }
     mapView.onResume();
   }
