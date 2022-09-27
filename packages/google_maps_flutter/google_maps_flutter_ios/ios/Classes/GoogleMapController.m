@@ -70,7 +70,9 @@
 
 @end
 
-@implementation FLTGoogleMapController
+@implementation FLTGoogleMapController {
+  FlutterResult _waitForMapResult;
+}
 
 - (instancetype)initWithFrame:(CGRect)frame
                viewIdentifier:(int64_t)viewId
@@ -167,6 +169,20 @@
     // We only observe the frame for initial setup.
     [self.mapView removeObserver:self forKeyPath:@"frame"];
     [self.mapView moveCamera:[GMSCameraUpdate setCamera:self.mapView.camera]];
+    if (_waitForMapResult != nil) {
+      NSLog(@"stevenMap observeValueForKeyPath _waitForMapResult != nil");
+      NSTimeInterval delayInSeconds = 0.1;
+      dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delayInSeconds * NSEC_PER_SEC));
+      dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
+        if (_waitForMapResult != nil) {
+          NSLog(@"stevenMap Do some work");
+          _waitForMapResult(nil);
+          _waitForMapResult = nil;
+        }
+      });
+    } else {
+      NSLog(@"stevenMap observeValueForKeyPath _waitForMapResult nil");
+    }
   } else {
     [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
   }
@@ -224,7 +240,23 @@
                                  details:nil]);
     }
   } else if ([call.method isEqualToString:@"map#waitForMap"]) {
-    result(nil);
+    if (_mapView != nil) {
+      GMSVisibleRegion visibleRegion = _mapView.projection.visibleRegion;
+      NSLog(@"stevenMap map#waitForMap visibleRegion %f %f %f %f", visibleRegion.nearRight.latitude, visibleRegion.nearRight.longitude, visibleRegion.farLeft.latitude, visibleRegion.farLeft.longitude);
+      if (visibleRegion.nearRight.latitude == -180
+          && visibleRegion.nearRight.longitude == -180
+          && visibleRegion.farLeft.latitude == -180
+          && visibleRegion.farLeft.longitude == -180) {
+        NSLog(@"stevenMap map#waitForMap 1");
+        _waitForMapResult = result;
+      } else {
+        NSLog(@"stevenMap map#waitForMap 2");
+        result(nil);
+      }
+    } else {
+      NSLog(@"stevenMap map#waitForMap 3");
+      _waitForMapResult = result;
+    }
   } else if ([call.method isEqualToString:@"map#takeSnapshot"]) {
     if (@available(iOS 10.0, *)) {
       if (self.mapView != nil) {
