@@ -21,19 +21,19 @@ flutter:
 dependencies:
   flutter:
     sdk: flutter
-  html: ^0.15.0
   flutter_cache_manager: ^3.3.0
+  html: ^0.15.0
   collection: ^1.16.0
   video_player_android:
     git:
       url: https://github.com/jsnprofessor/plugins.git
       path: packages/video_player/video_player_android
-      ref: '66068115'
+      ref: '7b568b7b'
   video_player_avfoundation:
     git:
       url: https://github.com/jsnprofessor/plugins.git
       path: packages/video_player/video_player_avfoundation
-      ref: '66068115'
+      ref: '7b568b7b'
 
 dev_dependencies:
   flutter_test:
