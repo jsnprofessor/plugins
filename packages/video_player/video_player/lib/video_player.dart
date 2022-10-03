@@ -534,25 +534,25 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
         _textureId = kUninitializedTextureId;
       }
       if (value.isInitialized) {
-        print('Professor: errorListener: value.isInitialized');
+        print('VideoPlayer: errorListener: value.isInitialized');
         final PlatformException e = obj as PlatformException;
         value = VideoPlayerValue.erroneous(e.message!);
         _lifeCycleObserver?.dispose();
         _creatingCompleter = null;
       } else if (cachedDataSources.isNotEmpty) {
-        print('Professor: errorListener: cachedDataSources.isNotEmpty');
+        print('VideoPlayer: errorListener: cachedDataSources.isNotEmpty');
         dataSourceDescription = await getDataSourceDescription(dataSources);
         _textureId = (await _videoPlayerPlatform.create(dataSourceDescription)) ?? kUninitializedTextureId;
         _eventSubscription = _videoPlayerPlatform.videoEventsFor(_textureId).listen(eventListener, onError: errorListener);
         cachedDataSources.clear();
       } else if (fallbackDataSources.isNotEmpty) {
-        print('Professor: errorListener: fallbackDataSources.isNotEmpty');
+        print('VideoPlayer: errorListener: fallbackDataSources.isNotEmpty');
         dataSourceDescription = await getDataSourceDescription(fallbackDataSources);
         _textureId = (await _videoPlayerPlatform.create(dataSourceDescription)) ?? kUninitializedTextureId;
         _eventSubscription = _videoPlayerPlatform.videoEventsFor(_textureId).listen(eventListener, onError: errorListener);
         fallbackDataSources.clear();
       } else {
-        print('Professor: errorListener: else');
+        print('VideoPlayer: errorListener: else');
         final PlatformException e = obj as PlatformException;
         value = VideoPlayerValue.erroneous(e.message!);
         _lifeCycleObserver?.dispose();
