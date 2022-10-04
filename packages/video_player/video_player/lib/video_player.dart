@@ -596,6 +596,9 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   /// has been sent to the platform, not when playback itself is totally
   /// finished.
   Future<void> play() async {
+    if (value.isPlaying) {
+      return;
+    }
     if (value.isCompleted) {
       previousDuration = Duration.zero;
       value = value.copyWith(
@@ -612,12 +615,18 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   /// Sets whether or not the video should loop after playing once. See also
   /// [VideoPlayerValue.isLooping].
   Future<void> setLooping(bool looping) async {
+    if (looping && value.isLooping) {
+      return;
+    }
     value = value.copyWith(isLooping: looping);
     await _applyLooping();
   }
 
   /// Pauses the video.
   Future<void> pause() async {
+    if (!value.isPlaying) {
+      return;
+    }
     value = value.copyWith(isPlaying: false);
     await _applyPlayPause();
   }
