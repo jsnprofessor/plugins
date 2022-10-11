@@ -35,6 +35,7 @@
 
 @interface FLTVideoPlayer : NSObject <FlutterTexture, FlutterStreamHandler>
 @property(readonly, nonatomic) AVQueuePlayer *player;
+@property(readonly, nonatomic) CIContext *ciContext;
 @property(readonly, nonatomic) CADisplayLink *displayLink;
 @property(nonatomic) NSArray<AVPlayerItem *> *items;
 @property(nonatomic) FlutterEventChannel *eventChannel;
@@ -221,16 +222,17 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
     (id)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32BGRA),
     (id)kCVPixelBufferIOSurfacePropertiesKey : @{}
   };
-  [[NSNotificationCenter defaultCenter] addObserver:self
-                                           selector:@selector(itemDidPlayToEndTime:)
-                                               name:AVPlayerItemDidPlayToEndTimeNotification
-                                             object:nil];
   for (AVPlayerItem *item in items) {
     AVPlayerItemVideoOutput *videoOutput = [[AVPlayerItemVideoOutput alloc] initWithPixelBufferAttributes:pixBuffAttributes];
     [item addOutput:videoOutput];
   }
+  [[NSNotificationCenter defaultCenter] addObserver:self
+                                           selector:@selector(itemDidPlayToEndTime:)
+                                               name:AVPlayerItemDidPlayToEndTimeNotification
+                                             object:nil];
   _player = [[AVQueuePlayer alloc] initWithItems:items];
   _player.actionAtItemEnd = AVPlayerActionAtItemEndNone;
+  _ciContext = [[CIContext alloc] init];
   [self addObservers:[_player currentItem]];
 
   [self createDisplayLink:frameUpdater];
@@ -491,10 +493,42 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
   AVPlayerItemVideoOutput *videoOutput = (AVPlayerItemVideoOutput *)[[[_player currentItem] outputs] firstObject];
   CMTime outputItemTime = [videoOutput itemTimeForHostTime:CACurrentMediaTime()];
   if ([videoOutput hasNewPixelBufferForItemTime:outputItemTime]) {
-    return [videoOutput copyPixelBufferForItemTime:outputItemTime itemTimeForDisplay:NULL];
-  } else {
-    return NULL;
+    CVPixelBufferRef buffer = [videoOutput copyPixelBufferForItemTime:outputItemTime itemTimeForDisplay:NULL];
+    if (@available(iOS 14.1, *)) {
+      CFTypeRef colorPrimaries = CVBufferGetAttachment(buffer, kCVImageBufferTransferFunctionKey, NULL);
+      if (colorPrimaries && (CFEqual(colorPrimaries, kCVImageBufferTransferFunction_ITU_R_2100_HLG) || CFEqual(colorPrimaries, kCVImageBufferTransferFunction_SMPTE_ST_2084_PQ))) {
+        CIImage *image = [CIImage imageWithCVPixelBuffer:buffer options:@{kCIImageToneMapHDRtoSDR : @(YES)}];
+        CVPixelBufferRef newBuffer = [self pixelBufferFormCIImage:image];
+        CVPixelBufferRelease(buffer);
+        return newBuffer;
+      }
+      return buffer;
+    }
   }
+  return NULL;
+}
+
+- (CVPixelBufferRef)pixelBufferFormCIImage:(CIImage *)image {
+  NSDictionary *options = [NSDictionary dictionaryWithObjectsAndKeys:
+                           @{}, kCVPixelBufferIOSurfacePropertiesKey,
+                           @YES, kCVPixelBufferCGImageCompatibilityKey,
+                           @YES, kCVPixelBufferCGBitmapContextCompatibilityKey, nil];
+  
+  CVPixelBufferRef pixelBufferCopy = NULL;
+  CVReturn status = CVPixelBufferCreate(kCFAllocatorDefault,
+                                        image.extent.size.width,
+                                        image.extent.size.height,
+                                        kCVPixelFormatType_32BGRA,
+                                        (__bridge CFDictionaryRef) options,
+                                        &pixelBufferCopy);
+  
+  if (status == kCVReturnSuccess) {
+    if (@available(iOS 11.0, *)) {
+      CIRenderDestination *destination = [[CIRenderDestination alloc] initWithPixelBuffer:pixelBufferCopy];
+      [self.ciContext startTaskToRender:image toDestination:destination error:nil];
+    }
+  }
+  return pixelBufferCopy;
 }
 
 - (FlutterError *_Nullable)onCancelWithArguments:(id _Nullable)arguments {
