@@ -232,7 +232,9 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
                                              object:nil];
   _player = [[AVQueuePlayer alloc] initWithItems:items];
   _player.actionAtItemEnd = AVPlayerActionAtItemEndNone;
-  _ciContext = [[CIContext alloc] init];
+  if (@available(iOS 14.1, *)) {
+    _ciContext = [[CIContext alloc] init];
+  }
   [self addObservers:[_player currentItem]];
 
   [self createDisplayLink:frameUpdater];
