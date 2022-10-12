@@ -502,8 +502,8 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
         CVPixelBufferRelease(buffer);
         return newBuffer;
       }
-      return buffer;
     }
+    return buffer;
   }
   return NULL;
 }
