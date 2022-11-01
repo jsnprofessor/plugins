@@ -169,7 +169,13 @@ class AVFoundationVideoPlayer extends VideoPlayerPlatform {
 
   @override
   Widget buildView(int textureId) {
-    return Texture(textureId: textureId);
+    return IgnorePointer(
+      child: UiKitView(
+        viewType: 'com.framy.video_player',
+        creationParamsCodec: const StandardMessageCodec(),
+        creationParams: <String, int>{'textureId': textureId},
+      ),
+    );
   }
 
   @override
