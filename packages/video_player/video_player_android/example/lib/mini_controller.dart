@@ -345,6 +345,10 @@ class MiniController extends ValueNotifier<VideoPlayerValue> {
     await _applyPlaybackSpeed();
   }
 
+  Future<String> takeSnapshot() async {
+    return await _platform.takeSnapshot(_textureId);
+  }
+
   void _updatePosition(Duration position) {
     value = value.copyWith(position: position);
   }
@@ -411,7 +415,7 @@ class _VideoPlayerState extends State<VideoPlayer> {
   Widget build(BuildContext context) {
     return _textureId == MiniController.kUninitializedTextureId
         ? Container()
-        : _platform.buildView(_textureId);
+        : _platform.buildView(_textureId, false);
   }
 }
 

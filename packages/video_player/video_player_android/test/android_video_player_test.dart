@@ -61,6 +61,12 @@ class _ApiLogger implements TestHostVideoPlayerApi {
   }
 
   @override
+  Future<SnapshotMessage> takeSnapshot(TextureMessage msg) {
+    // TODO: implement takeSnapshot
+    throw UnimplementedError();
+  }
+
+  @override
   PositionMessage position(TextureMessage arg) {
     log.add('position');
     textureMessage = arg;

@@ -57,6 +57,12 @@ class MixWithOthersMessage {
   bool mixWithOthers;
 }
 
+class SnapshotMessage {
+  SnapshotMessage(this.textureId, this.file);
+  int textureId;
+  String file;
+}
+
 @HostApi(dartHostTestHandler: 'TestHostVideoPlayerApi')
 abstract class AndroidVideoPlayerApi {
   void initialize();
@@ -70,4 +76,6 @@ abstract class AndroidVideoPlayerApi {
   void seekTo(PositionMessage msg);
   void pause(TextureMessage msg);
   void setMixWithOthers(MixWithOthersMessage msg);
+  @async
+  SnapshotMessage takeSnapshot(TextureMessage msg);
 }

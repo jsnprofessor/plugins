@@ -18,6 +18,7 @@ NS_ASSUME_NONNULL_BEGIN
 @class FLTPositionMessage;
 @class FLTCreateMessage;
 @class FLTMixWithOthersMessage;
+@class FLTSnapshotMessage;
 
 @interface FLTTextureMessage : NSObject
 /// `init` unavailable to enforce nonnull fields, see the `make` class method.
@@ -86,6 +87,15 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic, strong) NSNumber * mixWithOthers;
 @end
 
+@interface FLTSnapshotMessage : NSObject
+/// `init` unavailable to enforce nonnull fields, see the `make` class method.
+- (instancetype)init NS_UNAVAILABLE;
++ (instancetype)makeWithTextureId:(NSNumber *)textureId
+    file:(NSString *)file;
+@property(nonatomic, strong) NSNumber * textureId;
+@property(nonatomic, copy) NSString * file;
+@end
+
 /// The codec used by FLTAVFoundationVideoPlayerApi.
 NSObject<FlutterMessageCodec> *FLTAVFoundationVideoPlayerApiGetCodec(void);
 
@@ -103,6 +113,7 @@ NSObject<FlutterMessageCodec> *FLTAVFoundationVideoPlayerApiGetCodec(void);
 - (void)seekTo:(FLTPositionMessage *)msg error:(FlutterError *_Nullable *_Nonnull)error;
 - (void)pause:(FLTTextureMessage *)msg error:(FlutterError *_Nullable *_Nonnull)error;
 - (void)setMixWithOthers:(FLTMixWithOthersMessage *)msg error:(FlutterError *_Nullable *_Nonnull)error;
+- (void)takeSnapshot:(FLTTextureMessage *)msg completion:(void(^)(FLTSnapshotMessage *_Nullable, FlutterError *_Nullable))completion;
 @end
 
 extern void FLTAVFoundationVideoPlayerApiSetup(id<FlutterBinaryMessenger> binaryMessenger, NSObject<FLTAVFoundationVideoPlayerApi> *_Nullable api);

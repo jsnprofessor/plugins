@@ -95,13 +95,18 @@ abstract class VideoPlayerPlatform extends PlatformInterface {
   }
 
   /// Returns a widget displaying the video with a given textureID.
-  Widget buildView(int textureId) {
+  Widget buildView(int textureId, bool freeze) {
     throw UnimplementedError('buildView() has not been implemented.');
   }
 
   /// Sets the audio mode to mix with other sources
   Future<void> setMixWithOthers(bool mixWithOthers) {
     throw UnimplementedError('setMixWithOthers() has not been implemented.');
+  }
+
+  /// Sets the audio mode to mix with other sources
+  Future<String> takeSnapshot(int textureId) {
+    throw UnimplementedError('takeSnapshot() has not been implemented.');
   }
 }
 

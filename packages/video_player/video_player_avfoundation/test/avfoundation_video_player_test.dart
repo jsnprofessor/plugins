@@ -90,6 +90,12 @@ class _ApiLogger implements TestHostVideoPlayerApi {
     log.add('setPlaybackSpeed');
     playbackSpeedMessage = arg;
   }
+
+  @override
+  Future<SnapshotMessage> takeSnapshot(TextureMessage msg) {
+    // TODO: implement takeSnapshot
+    throw UnimplementedError();
+  }
 }
 
 void main() {

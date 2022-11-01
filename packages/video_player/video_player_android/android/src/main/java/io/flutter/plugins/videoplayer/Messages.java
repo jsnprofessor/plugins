@@ -440,6 +440,67 @@ public class Messages {
       return pigeonResult;
     }
   }
+
+  /** Generated class from Pigeon that represents data sent in messages. */
+  public static class SnapshotMessage {
+    private @NonNull Long textureId;
+    public @NonNull Long getTextureId() { return textureId; }
+    public void setTextureId(@NonNull Long setterArg) {
+      if (setterArg == null) {
+        throw new IllegalStateException("Nonnull field \"textureId\" is null.");
+      }
+      this.textureId = setterArg;
+    }
+
+    private @NonNull String file;
+    public @NonNull String getFile() { return file; }
+    public void setFile(@NonNull String setterArg) {
+      if (setterArg == null) {
+        throw new IllegalStateException("Nonnull field \"file\" is null.");
+      }
+      this.file = setterArg;
+    }
+
+    /** Constructor is private to enforce null safety; use Builder. */
+    private SnapshotMessage() {}
+    public static final class Builder {
+      private @Nullable Long textureId;
+      public @NonNull Builder setTextureId(@NonNull Long setterArg) {
+        this.textureId = setterArg;
+        return this;
+      }
+      private @Nullable String file;
+      public @NonNull Builder setFile(@NonNull String setterArg) {
+        this.file = setterArg;
+        return this;
+      }
+      public @NonNull SnapshotMessage build() {
+        SnapshotMessage pigeonReturn = new SnapshotMessage();
+        pigeonReturn.setTextureId(textureId);
+        pigeonReturn.setFile(file);
+        return pigeonReturn;
+      }
+    }
+    @NonNull Map<String, Object> toMap() {
+      Map<String, Object> toMapResult = new HashMap<>();
+      toMapResult.put("textureId", textureId);
+      toMapResult.put("file", file);
+      return toMapResult;
+    }
+    static @NonNull SnapshotMessage fromMap(@NonNull Map<String, Object> map) {
+      SnapshotMessage pigeonResult = new SnapshotMessage();
+      Object textureId = map.get("textureId");
+      pigeonResult.setTextureId((textureId == null) ? null : ((textureId instanceof Integer) ? (Integer)textureId : (Long)textureId));
+      Object file = map.get("file");
+      pigeonResult.setFile((String)file);
+      return pigeonResult;
+    }
+  }
+
+  public interface Result<T> {
+    void success(T result);
+    void error(Throwable error);
+  }
   private static class AndroidVideoPlayerApiCodec extends StandardMessageCodec {
     public static final AndroidVideoPlayerApiCodec INSTANCE = new AndroidVideoPlayerApiCodec();
     private AndroidVideoPlayerApiCodec() {}
@@ -462,9 +523,12 @@ public class Messages {
           return PositionMessage.fromMap((Map<String, Object>) readValue(buffer));
         
         case (byte)133:         
-          return TextureMessage.fromMap((Map<String, Object>) readValue(buffer));
+          return SnapshotMessage.fromMap((Map<String, Object>) readValue(buffer));
         
         case (byte)134:         
+          return TextureMessage.fromMap((Map<String, Object>) readValue(buffer));
+        
+        case (byte)135:         
           return VolumeMessage.fromMap((Map<String, Object>) readValue(buffer));
         
         default:        
@@ -494,12 +558,16 @@ public class Messages {
         stream.write(132);
         writeValue(stream, ((PositionMessage) value).toMap());
       } else 
-      if (value instanceof TextureMessage) {
+      if (value instanceof SnapshotMessage) {
         stream.write(133);
+        writeValue(stream, ((SnapshotMessage) value).toMap());
+      } else 
+      if (value instanceof TextureMessage) {
+        stream.write(134);
         writeValue(stream, ((TextureMessage) value).toMap());
       } else 
       if (value instanceof VolumeMessage) {
-        stream.write(134);
+        stream.write(135);
         writeValue(stream, ((VolumeMessage) value).toMap());
       } else 
 {
@@ -521,6 +589,7 @@ public class Messages {
     void seekTo(@NonNull PositionMessage msg);
     void pause(@NonNull TextureMessage msg);
     void setMixWithOthers(@NonNull MixWithOthersMessage msg);
+    void takeSnapshot(@NonNull TextureMessage msg, Result<SnapshotMessage> result);
 
     /** The codec used by AndroidVideoPlayerApi. */
     static MessageCodec<Object> getCodec() {
@@ -783,6 +852,40 @@ public class Messages {
               wrapped.put("error", wrapError(exception));
             }
             reply.reply(wrapped);
+          });
+        } else {
+          channel.setMessageHandler(null);
+        }
+      }
+      {
+        BasicMessageChannel<Object> channel =
+            new BasicMessageChannel<>(binaryMessenger, "dev.flutter.pigeon.AndroidVideoPlayerApi.takeSnapshot", getCodec());
+        if (api != null) {
+          channel.setMessageHandler((message, reply) -> {
+            Map<String, Object> wrapped = new HashMap<>();
+            try {
+              ArrayList<Object> args = (ArrayList<Object>)message;
+              TextureMessage msgArg = (TextureMessage)args.get(0);
+              if (msgArg == null) {
+                throw new NullPointerException("msgArg unexpectedly null.");
+              }
+              Result<SnapshotMessage> resultCallback = new Result<SnapshotMessage>() {
+                public void success(SnapshotMessage result) {
+                  wrapped.put("result", result);
+                  reply.reply(wrapped);
+                }
+                public void error(Throwable error) {
+                  wrapped.put("error", wrapError(error));
+                  reply.reply(wrapped);
+                }
+              };
+
+              api.takeSnapshot(msgArg, resultCallback);
+            }
+            catch (Error | RuntimeException exception) {
+              wrapped.put("error", wrapError(exception));
+              reply.reply(wrapped);
+            }
           });
         } else {
           channel.setMessageHandler(null);

@@ -5,7 +5,12 @@
 package io.flutter.plugins.videoplayer;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.PixelCopy;
 import android.view.Surface;
 
 import com.google.android.exoplayer2.C;
@@ -30,6 +35,9 @@ import com.google.android.exoplayer2.upstream.DefaultDataSource;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSource;
 import com.google.android.exoplayer2.util.Util;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -44,6 +52,7 @@ import io.flutter.view.TextureRegistry;
 
 import static com.google.android.exoplayer2.Player.REPEAT_MODE_ALL;
 import static com.google.android.exoplayer2.Player.REPEAT_MODE_OFF;
+import static io.flutter.plugins.videoplayer.Messages.SnapshotMessage;
 
 final class VideoPlayer {
   private static final String FORMAT_SS = "ss";
@@ -53,6 +62,7 @@ final class VideoPlayer {
   private final TextureRegistry.SurfaceTextureEntry textureEntry;
   private final EventChannel eventChannel;
   private final VideoPlayerOptions options;
+  private final File snapshotDir;
   @VisibleForTesting
   boolean isInitialized = false;
   private ExoPlayer exoPlayer;
@@ -109,6 +119,8 @@ final class VideoPlayer {
     exoPlayer.prepare();
 
     setUpVideoPlayer(exoPlayer, new QueuingEventSink());
+
+    snapshotDir = context.getCacheDir();
   }
 
   // Constructor used to directly test members of this class.
@@ -124,6 +136,8 @@ final class VideoPlayer {
     this.options = options;
 
     setUpVideoPlayer(exoPlayer, eventSink);
+
+    snapshotDir = new File("");
   }
 
   private static boolean isHTTP(Uri uri) {
@@ -132,6 +146,12 @@ final class VideoPlayer {
     }
     String scheme = uri.getScheme();
     return scheme.equals("http") || scheme.equals("https");
+  }
+
+  private static void setAudioAttributes(ExoPlayer exoPlayer, boolean isMixMode) {
+    exoPlayer.setAudioAttributes(
+            new AudioAttributes.Builder().setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),
+            !isMixMode);
   }
 
   private MediaSource buildMediaSource(
@@ -286,12 +306,6 @@ final class VideoPlayer {
     eventSink.success(event);
   }
 
-  private static void setAudioAttributes(ExoPlayer exoPlayer, boolean isMixMode) {
-    exoPlayer.setAudioAttributes(
-        new AudioAttributes.Builder().setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),
-        !isMixMode);
-  }
-
   void play() {
     if (exoPlayer.getPlaybackState() == Player.STATE_ENDED) {
       exoPlayer.seekTo(0, 0);
@@ -350,6 +364,48 @@ final class VideoPlayer {
         }
       }
       eventSink.success(event);
+    }
+  }
+
+  public void takeSnapshot(Messages.TextureMessage arg, Messages.Result<SnapshotMessage> result) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+      result.error(new Exception("Build.VERSION.SDK_INT < Build.VERSION_CODES.N"));
+      return;
+    }
+    if (exoPlayer.getVideoFormat() != null) {
+      Format videoFormat = exoPlayer.getVideoFormat();
+      int width = videoFormat.width;
+      int height = videoFormat.height;
+      Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+      PixelCopy.request(surface, bitmap, copyResult -> {
+        switch (copyResult) {
+          case PixelCopy.SUCCESS:
+            File file = new File(snapshotDir, System.currentTimeMillis() + ".png");
+            try (OutputStream outputStream = new FileOutputStream(file)) {
+              bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream);
+              SnapshotMessage message = new SnapshotMessage.Builder().setTextureId(arg.getTextureId()).setFile(file.getAbsolutePath()).build();
+              result.success(message);
+            } catch (Exception e) {
+              result.error(e);
+            }
+            break;
+          case PixelCopy.ERROR_UNKNOWN:
+            result.error(new Exception("PixelCopy.ERROR_UNKNOWN"));
+            break;
+          case PixelCopy.ERROR_TIMEOUT:
+            result.error(new Exception("PixelCopy.ERROR_TIMEOUT"));
+            break;
+          case PixelCopy.ERROR_SOURCE_NO_DATA:
+            result.error(new Exception("PixelCopy.ERROR_SOURCE_NO_DATA"));
+            break;
+          case PixelCopy.ERROR_SOURCE_INVALID:
+            result.error(new Exception("PixelCopy.ERROR_SOURCE_INVALID"));
+            break;
+          case PixelCopy.ERROR_DESTINATION_INVALID:
+            result.error(new Exception("PixelCopy.ERROR_DESTINATION_INVALID"));
+            break;
+        }
+      }, new Handler(Looper.getMainLooper()));
     }
   }
 

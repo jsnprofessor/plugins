@@ -168,14 +168,20 @@ class AVFoundationVideoPlayer extends VideoPlayerPlatform {
   }
 
   @override
-  Widget buildView(int textureId) {
-    return Texture(textureId: textureId);
+  Widget buildView(int textureId, bool freeze) {
+    return Texture(textureId: textureId, freeze: freeze);
   }
 
   @override
   Future<void> setMixWithOthers(bool mixWithOthers) {
     return _api
         .setMixWithOthers(MixWithOthersMessage(mixWithOthers: mixWithOthers));
+  }
+
+  @override
+  Future<String> takeSnapshot(int textureId) async {
+    final SnapshotMessage response = await _api.takeSnapshot(TextureMessage(textureId: textureId));
+    return response.file;
   }
 
   EventChannel _eventChannelFor(int textureId) {

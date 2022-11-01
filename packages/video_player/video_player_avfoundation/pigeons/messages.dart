@@ -58,6 +58,12 @@ class MixWithOthersMessage {
   bool mixWithOthers;
 }
 
+class SnapshotMessage {
+  SnapshotMessage(this.textureId, this.file);
+  int textureId;
+  String file;
+}
+
 @HostApi(dartHostTestHandler: 'TestHostVideoPlayerApi')
 abstract class AVFoundationVideoPlayerApi {
   @ObjCSelector('initialize')
@@ -82,4 +88,7 @@ abstract class AVFoundationVideoPlayerApi {
   void pause(TextureMessage msg);
   @ObjCSelector('setMixWithOthers:')
   void setMixWithOthers(MixWithOthersMessage msg);
+  @async
+  @ObjCSelector('takeSnapshot:')
+  SnapshotMessage takeSnapshot(TextureMessage msg);
 }

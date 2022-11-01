@@ -770,6 +770,10 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     await _applyPlaybackSpeed();
   }
 
+  Future<String> takeSnapshot() async {
+    return await _videoPlayerPlatform.takeSnapshot(_textureId);
+  }
+
   /// Sets the caption offset.
   ///
   /// The [offset] will be used when getting the correct caption for a specific position.
@@ -898,7 +902,7 @@ class VideoPlayer extends StatefulWidget {
 class _VideoPlayerState extends State<VideoPlayer> {
   _VideoPlayerState() {
     _listener = () {
-      final int newTextureId = widget.controller.textureId;
+      final int newTextureId = widget.controller._textureId;
       if (newTextureId != _textureId) {
         setState(() {
           _textureId = newTextureId;
@@ -914,7 +918,7 @@ class _VideoPlayerState extends State<VideoPlayer> {
   @override
   void initState() {
     super.initState();
-    _textureId = widget.controller.textureId;
+    _textureId = widget.controller._textureId;
     // Need to listen for initialization events since the actual texture ID
     // becomes available after asynchronous initialization finishes.
     widget.controller.addListener(_listener);
@@ -924,7 +928,7 @@ class _VideoPlayerState extends State<VideoPlayer> {
   void didUpdateWidget(VideoPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
     oldWidget.controller.removeListener(_listener);
-    _textureId = widget.controller.textureId;
+    _textureId = widget.controller._textureId;
     widget.controller.addListener(_listener);
   }
 

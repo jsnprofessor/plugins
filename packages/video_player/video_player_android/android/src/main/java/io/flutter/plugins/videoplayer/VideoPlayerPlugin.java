@@ -16,6 +16,7 @@ import java.util.Map;
 
 import javax.net.ssl.HttpsURLConnection;
 
+import androidx.annotation.NonNull;
 import io.flutter.FlutterInjector;
 import io.flutter.Log;
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
@@ -27,6 +28,7 @@ import io.flutter.plugins.videoplayer.Messages.LoopingMessage;
 import io.flutter.plugins.videoplayer.Messages.MixWithOthersMessage;
 import io.flutter.plugins.videoplayer.Messages.PlaybackSpeedMessage;
 import io.flutter.plugins.videoplayer.Messages.PositionMessage;
+import io.flutter.plugins.videoplayer.Messages.SnapshotMessage;
 import io.flutter.plugins.videoplayer.Messages.TextureMessage;
 import io.flutter.plugins.videoplayer.Messages.VolumeMessage;
 import io.flutter.view.TextureRegistry;
@@ -219,6 +221,12 @@ public class VideoPlayerPlugin implements FlutterPlugin, AndroidVideoPlayerApi {
   @Override
   public void setMixWithOthers(MixWithOthersMessage arg) {
     options.mixWithOthers = arg.getMixWithOthers();
+  }
+
+  @Override
+  public void takeSnapshot(@NonNull TextureMessage arg, Messages.Result<SnapshotMessage> result) {
+    VideoPlayer player = videoPlayers.get(arg.getTextureId());
+    player.takeSnapshot(arg, result);
   }
 
   private interface KeyForAssetFn {

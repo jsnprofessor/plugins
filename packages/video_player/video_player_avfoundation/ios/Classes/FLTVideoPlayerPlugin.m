@@ -723,4 +723,28 @@ NS_INLINE CGFloat radiansToDegrees(CGFloat radians) {
   }
 }
 
+- (void)takeSnapshot:(FLTTextureMessage *)input completion:(void (^)(FLTSnapshotMessage * _Nullable, FlutterError * _Nullable))completion {
+  FLTVideoPlayer *player = self.playersByTextureId[input.textureId];
+  CVPixelBufferRef ref = [player copyPixelBuffer];
+  CIImage *ciImage = [[CIImage alloc] initWithCVPixelBuffer:ref];
+  NSData *pngData = UIImagePNGRepresentation([[UIImage alloc] initWithCIImage:ciImage]);
+  NSURL *url = [[[NSFileManager defaultManager] URLsForDirectory:NSCachesDirectory inDomains:NSUserDomainMask] firstObject];
+  if (url) {
+    NSError *error;
+    NSDate *date = [[NSDate alloc] init];
+    NSURL *fileUrl = [url URLByAppendingPathComponent:[NSString stringWithFormat:@"%f.png", [date timeIntervalSince1970] * 1000]];
+    [pngData writeToURL:fileUrl options:NSDataWritingAtomic error:&error];
+    if (error) {
+      FlutterError *flutterError = [FlutterError errorWithCode:[@([error code]) stringValue] message:[error localizedDescription] details:[error debugDescription]];
+      completion(NULL, flutterError);
+    } else {
+      FLTSnapshotMessage *result = [FLTSnapshotMessage makeWithTextureId:input.textureId file:[fileUrl path]];
+      completion(result, NULL);
+    }
+  } else {
+    FlutterError *flutterError = [[FlutterError alloc] init];
+    completion(NULL, flutterError);
+  }
+}
+
 @end
