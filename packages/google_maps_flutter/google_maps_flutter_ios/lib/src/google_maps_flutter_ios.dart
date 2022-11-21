@@ -478,8 +478,7 @@ class GoogleMapsFlutterIOS extends GoogleMapsFlutterPlatform {
     Map<String, dynamic> mapOptions = const <String, dynamic>{},
   }) {
     final Map<String, dynamic> creationParams = <String, dynamic>{
-      'initialCameraPosition':
-          widgetConfiguration.initialCameraPosition.toMap(),
+      'initialCameraPosition': widgetConfiguration.initialCameraPosition.toMap(),
       'options': mapOptions,
       'markersToAdd': serializeMarkerSet(mapObjects.markers),
       'polygonsToAdd': serializePolygonSet(mapObjects.polygons),
@@ -487,6 +486,11 @@ class GoogleMapsFlutterIOS extends GoogleMapsFlutterPlatform {
       'circlesToAdd': serializeCircleSet(mapObjects.circles),
       'tileOverlaysToAdd': serializeTileOverlaySet(mapObjects.tileOverlays),
     };
+    final estimatedSize = widgetConfiguration.estimatedSize;
+    if (estimatedSize != null) {
+      creationParams['estimatedWidth'] = estimatedSize.width;
+      creationParams['estimatedHeight'] = estimatedSize.height;
+    }
 
     return UiKitView(
       viewType: 'plugins.flutter.dev/google_maps_ios',
@@ -520,6 +524,7 @@ class GoogleMapsFlutterIOS extends GoogleMapsFlutterPlatform {
     PlatformViewCreatedCallback onPlatformViewCreated, {
     required CameraPosition initialCameraPosition,
     required TextDirection textDirection,
+    Size? estimatedSize,
     Set<Marker> markers = const <Marker>{},
     Set<Polygon> polygons = const <Polygon>{},
     Set<Polyline> polylines = const <Polyline>{},
@@ -531,15 +536,8 @@ class GoogleMapsFlutterIOS extends GoogleMapsFlutterPlatform {
     return _buildView(
       creationId,
       onPlatformViewCreated,
-      widgetConfiguration: MapWidgetConfiguration(
-          initialCameraPosition: initialCameraPosition,
-          textDirection: textDirection),
-      mapObjects: MapObjects(
-          markers: markers,
-          polygons: polygons,
-          polylines: polylines,
-          circles: circles,
-          tileOverlays: tileOverlays),
+      widgetConfiguration: MapWidgetConfiguration(initialCameraPosition: initialCameraPosition, estimatedSize: estimatedSize, textDirection: textDirection),
+      mapObjects: MapObjects(markers: markers, polygons: polygons, polylines: polylines, circles: circles, tileOverlays: tileOverlays),
       mapOptions: mapOptions,
     );
   }
@@ -549,6 +547,7 @@ class GoogleMapsFlutterIOS extends GoogleMapsFlutterPlatform {
     int creationId,
     PlatformViewCreatedCallback onPlatformViewCreated, {
     required CameraPosition initialCameraPosition,
+    Size? estimatedSize,
     Set<Marker> markers = const <Marker>{},
     Set<Polygon> polygons = const <Polygon>{},
     Set<Polyline> polylines = const <Polyline>{},
@@ -561,6 +560,7 @@ class GoogleMapsFlutterIOS extends GoogleMapsFlutterPlatform {
       creationId,
       onPlatformViewCreated,
       initialCameraPosition: initialCameraPosition,
+      estimatedSize: estimatedSize,
       textDirection: TextDirection.ltr,
       markers: markers,
       polygons: polygons,

@@ -123,6 +123,7 @@ class GoogleMap extends StatefulWidget {
     this.onCameraIdle,
     this.onTap,
     this.onLongPress,
+    this.estimatedSize,
   })  : assert(initialCameraPosition != null),
         super(key: key);
 
@@ -283,6 +284,8 @@ class GoogleMap extends StatefulWidget {
   /// were not claimed by any other gesture recognizer.
   final Set<Factory<OneSequenceGestureRecognizer>> gestureRecognizers;
 
+  final Size? estimatedSize;
+
   /// Creates a [State] for this [GoogleMap].
   @override
   State createState() => _GoogleMapState();
@@ -310,6 +313,7 @@ class _GoogleMapState extends State<GoogleMap> {
             Directionality.maybeOf(context) ??
             TextDirection.ltr,
         initialCameraPosition: widget.initialCameraPosition,
+        estimatedSize: widget.estimatedSize,
         gestureRecognizers: widget.gestureRecognizers,
       ),
       mapObjects: MapObjects(

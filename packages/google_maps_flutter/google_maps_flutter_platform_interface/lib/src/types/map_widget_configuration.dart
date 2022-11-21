@@ -19,6 +19,7 @@ class MapWidgetConfiguration {
     required this.initialCameraPosition,
     required this.textDirection,
     this.gestureRecognizers = const <Factory<OneSequenceGestureRecognizer>>{},
+    this.estimatedSize,
   });
 
   /// The initial camera position to display.
@@ -29,4 +30,6 @@ class MapWidgetConfiguration {
 
   /// Gesture recognizers to add to the widget.
   final Set<Factory<OneSequenceGestureRecognizer>> gestureRecognizers;
+
+  final Size? estimatedSize;
 }

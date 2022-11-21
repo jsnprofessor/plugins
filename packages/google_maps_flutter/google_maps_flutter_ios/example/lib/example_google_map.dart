@@ -247,6 +247,7 @@ class ExampleGoogleMap extends StatefulWidget {
     this.onCameraIdle,
     this.onTap,
     this.onLongPress,
+    this.estimatedSize,
   }) : super(key: key);
 
   /// Callback method for when the map is ready to be used.
@@ -349,6 +350,8 @@ class ExampleGoogleMap extends StatefulWidget {
   /// Which gestures should be consumed by the map.
   final Set<Factory<OneSequenceGestureRecognizer>> gestureRecognizers;
 
+  final Size? estimatedSize;
+
   /// Creates a [State] for this [ExampleGoogleMap].
   @override
   State createState() => _ExampleGoogleMapState();
@@ -372,10 +375,9 @@ class _ExampleGoogleMapState extends State<ExampleGoogleMap> {
       _mapId,
       onPlatformViewCreated,
       widgetConfiguration: MapWidgetConfiguration(
-        textDirection: widget.layoutDirection ??
-            Directionality.maybeOf(context) ??
-            TextDirection.ltr,
+        textDirection: widget.layoutDirection ?? Directionality.maybeOf(context) ?? TextDirection.ltr,
         initialCameraPosition: widget.initialCameraPosition,
+        estimatedSize: widget.estimatedSize,
         gestureRecognizers: widget.gestureRecognizers,
       ),
       mapObjects: MapObjects(
